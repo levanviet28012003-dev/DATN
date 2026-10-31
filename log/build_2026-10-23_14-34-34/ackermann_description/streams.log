@@ -1,0 +1,37 @@
+[0.010s] Invoking command in '/home/viet/ackermann_ws/build/ackermann_description': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/viet/ackermann_ws/build/ackermann_description -- -j12 -l12
+[30.033s] Invoked command in '/home/viet/ackermann_ws/build/ackermann_description' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/viet/ackermann_ws/build/ackermann_description -- -j12 -l12
+[30.067s] Invoking command in '/home/viet/ackermann_ws/build/ackermann_description': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/viet/ackermann_ws/build/ackermann_description
+[30.084s] -- Install configuration: ""
+[30.084s] -- Execute custom install script
+[30.085s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/urdf/ackermann.urdf.xacro
+[30.086s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/launch/__pycache__/display.launch.cpython-310.pyc
+[30.086s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/launch/display.launch.py
+[30.087s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/chassis_plate.dae
+[30.087s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/chassis_plate.stl
+[30.088s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/wheel.dae
+[30.088s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/wheel_black.dae
+[30.088s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/wheel_black.stl
+[30.088s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/wheel_red.dae
+[30.088s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/wheel_red.stl
+[30.089s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/wheel_rubber.dae
+[30.089s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/wheel_rubber.stl
+[30.089s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/wheel_silver.dae
+[30.089s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/meshes/wheel_silver.stl
+[30.090s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/config/bridge.yaml
+[30.090s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ament_index/resource_index/package_run_dependencies/ackermann_description
+[30.090s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ament_index/resource_index/parent_prefix_path/ackermann_description
+[30.091s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/environment/ament_prefix_path.sh
+[30.091s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/environment/ament_prefix_path.dsv
+[30.091s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/environment/path.sh
+[30.092s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/environment/path.dsv
+[30.092s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/local_setup.bash
+[30.092s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/local_setup.sh
+[30.093s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/local_setup.zsh
+[30.093s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/local_setup.dsv
+[30.093s] -- Symlinking: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/package.dsv
+[30.103s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ament_index/resource_index/packages/ackermann_description
+[30.103s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/cmake/ackermann_descriptionConfig.cmake
+[30.103s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/cmake/ackermann_descriptionConfig-version.cmake
+[30.103s] -- Up-to-date symlink: /home/viet/ackermann_ws/install/ackermann_description/share/ackermann_description/package.xml
+[30.104s] -- Up-to-date: /home/viet/ackermann_ws/install/ackermann_description/lib/ackermann_description/manual_control
+[30.105s] Invoked command in '/home/viet/ackermann_ws/build/ackermann_description' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/viet/ackermann_ws/build/ackermann_description

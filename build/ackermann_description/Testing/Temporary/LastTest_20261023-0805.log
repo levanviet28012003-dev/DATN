@@ -1,0 +1,36 @@
+Start testing: Oct 23 15:05 +07
+----------------------------------------------------------
+1/1 Testing: trajectory_path
+1/1 Test: trajectory_path
+Command: "/usr/bin/python3" "-u" "/opt/ros/humble/share/ament_cmake_test/cmake/run_test.py" "/home/viet/ackermann_ws/build/ackermann_description/test_results/ackermann_description/trajectory_path.xunit.xml" "--package-name" "ackermann_description" "--output-file" "/home/viet/ackermann_ws/build/ackermann_description/ament_cmake_pytest/trajectory_path.txt" "--command" "/usr/bin/python3" "-u" "-m" "pytest" "/home/viet/ackermann_ws/src/ackermann_description/test/test_trajectory_path.py" "-o" "cache_dir=/home/viet/ackermann_ws/build/ackermann_description/ament_cmake_pytest/trajectory_path/.cache" "--junit-xml=/home/viet/ackermann_ws/build/ackermann_description/test_results/ackermann_description/trajectory_path.xunit.xml" "--junit-prefix=ackermann_description"
+Directory: /home/viet/ackermann_ws/build/ackermann_description
+"trajectory_path" start time: Oct 23 15:05 +07
+Output:
+----------------------------------------------------------
+-- run_test.py: invoking following command in '/home/viet/ackermann_ws/build/ackermann_description':
+ - /usr/bin/python3 -u -m pytest /home/viet/ackermann_ws/src/ackermann_description/test/test_trajectory_path.py -o cache_dir=/home/viet/ackermann_ws/build/ackermann_description/ament_cmake_pytest/trajectory_path/.cache --junit-xml=/home/viet/ackermann_ws/build/ackermann_description/test_results/ackermann_description/trajectory_path.xunit.xml --junit-prefix=ackermann_description
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-6.2.5, py-1.10.0, pluggy-0.13.0
+cachedir: build/ackermann_description/ament_cmake_pytest/trajectory_path/.cache
+rootdir: /home/viet/ackermann_ws
+plugins: ament-flake8-0.12.15, launch-testing-1.0.15, ament-pep257-0.12.15, ament-copyright-0.12.15, ament-xmllint-0.12.15, ament-lint-0.12.15, launch-testing-ros-0.19.14, colcon-core-0.21.3, cov-3.0.0
+collected 4 items
+
+../../src/ackermann_description/test/test_trajectory_path.py ....        [100%]
+
+- generated xml file: /home/viet/ackermann_ws/build/ackermann_description/test_results/ackermann_description/trajectory_path.xunit.xml -
+============================== 4 passed in 0.24s ===============================
+-- run_test.py: return code 0
+-- run_test.py: verify result file '/home/viet/ackermann_ws/build/ackermann_description/test_results/ackermann_description/trajectory_path.xunit.xml'
+<end of output>
+Test time =   0.66 sec
+----------------------------------------------------------
+Test Passed.
+"trajectory_path" end time: Oct 23 15:05 +07
+"trajectory_path" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 23 15:05 +07
+
+pytest =   0.66 sec*proc
+

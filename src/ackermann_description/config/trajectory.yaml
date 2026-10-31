@@ -1,0 +1,18 @@
+trajectory_controller:
+  ros__parameters:
+    use_sim_time: true
+    # Chọn circle hoặc figure8; figure8 cần radius ít nhất 2,4 m.
+    trajectory: circle
+    radius: 1.0
+    laps: 1
+    # Vận tốc m/s và khoảng cách nhìn trước theo đường đi tính bằng mét.
+    speed: 0.12
+    lookahead: 0.4
+    goal_tolerance: 0.06
+    # Các giới hạn phù hợp với mô hình Ackermann hiện tại.
+    max_curvature: 2.5
+    max_yaw_rate: 0.5
+    max_tracking_error: 0.75
+    odom_timeout: 1.0
+    startup_timeout: 15.0
+    max_duration: 240.0
