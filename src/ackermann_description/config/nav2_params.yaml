@@ -1,0 +1,250 @@
+# Tham số Nav2 dùng chung cho xe Ackermann trên mô phỏng.
+# Bộ điều khiển bám đường (FollowPath) nằm ở controller_rpp.yaml và controller_mppi.yaml,
+# launch chọn một trong hai qua tham số controller.
+#
+# Các giá trị phải đồng bộ với URDF:
+# - Bán kính quay: plugin AckermannSteering giới hạn ở wheelbase / sin(steering_limit)
+#   = 0,165 / sin(0,45) ≈ 0,38 m. Bộ lập đường dùng 0,60 m (planner_server), MPPI được phép cua
+#   tới 0,45 m (controller_mppi.yaml) để còn dư góc lái mà sửa sai lệch.
+# - Khớp lái trong mô phỏng đáp ứng chậm, hằng số thời gian khoảng 1 s (plugin dùng khâu tỉ lệ
+#   hệ số 1, không chỉnh được). Sai lệch khi vào cua xấp xỉ (độ cong) × (tốc độ)² × 1 s², nên
+#   bán kính lập đường và tốc độ được chọn theo đó. Đo lại đáp ứng lái trước khi tăng tốc độ.
+# - Tốc độ: RPP và MPPI chạy tối đa 0,20 m/s (hai file controller); velocity_smoother chặn ở 0,25 m/s,
+#   thấp hơn giới hạn 0,3 m/s của dự án.
+# - Frame gốc của xe là rear_axle (tâm trục sau, sau base_link 0,0825 m) vì mô hình Ackermann của
+#   Smac Hybrid-A*, RPP, MPPI và plugin lái đều lấy tâm trục sau làm điểm tham chiếu.
+#   Điểm đích vì vậy là vị trí của tâm trục sau. AMCL vẫn dùng base_link.
+# - footprint 0,28 m × 0,21 m, khai báo trong frame rear_axle: hai costmap.
+
+amcl:
+  ros__parameters:
+    # /odom là vị trí thật của Gazebo nên nhiễu chuyển động đặt thấp.
+    alpha1: 0.02
+    alpha2: 0.02
+    alpha3: 0.02
+    alpha4: 0.02
+    alpha5: 0.02
+    base_frame_id: base_link
+    global_frame_id: map
+    odom_frame_id: odom
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+    # Chướng ngại vật thả thêm không có trên bản đồ. Với mô hình likelihood_field thường, AMCL cố khớp
+    # chúng với tường và vị trí ước lượng bị kéo lệch (đã đo: 16 cm khi có 4 trụ quanh xe), khiến
+    # bộ lập đường tưởng xe đè lên vật cản. Mô hình _prob với beam skip bỏ qua các tia mà phần lớn
+    # hạt cho là không khớp bản đồ; khoảng cách khớp tối đa ngắn làm giảm sức kéo của các tia còn lại.
+    laser_model_type: likelihood_field_prob
+    do_beamskip: true
+    beam_skip_distance: 0.3
+    beam_skip_threshold: 0.3
+    beam_skip_error_threshold: 0.9
+    laser_likelihood_max_dist: 0.5
+    laser_min_range: 0.15
+    laser_max_range: 12.0
+    max_beams: 180
+    min_particles: 500
+    max_particles: 2000
+    pf_err: 0.05
+    pf_z: 0.99
+    recovery_alpha_fast: 0.0
+    recovery_alpha_slow: 0.0
+    resample_interval: 1
+    save_pose_rate: 0.5
+    sigma_hit: 0.1
+    z_hit: 0.6
+    z_rand: 0.4
+    z_max: 0.0
+    z_short: 0.0
+    tf_broadcast: true
+    transform_tolerance: 0.5
+    # Xe nhỏ và chậm nên cập nhật sau quãng đường ngắn.
+    update_min_d: 0.05
+    update_min_a: 0.1
+    scan_topic: scan
+    # Xe được đặt tại gốc bản đồ, hướng +X (xem display.launch.py).
+    set_initial_pose: true
+    initial_pose: {x: 0.0, y: 0.0, z: 0.0, yaw: 0.0}
+
+map_server:
+  ros__parameters:
+    # yaml_filename do navigation.launch.py truyền vào.
+    topic_name: map
+    frame_id: map
+
+bt_navigator:
+  ros__parameters:
+    global_frame: map
+    robot_base_frame: rear_axle
+    odom_topic: /odom
+    bt_loop_duration: 10
+    default_server_timeout: 20
+    # Hai file cây hành vi do navigation.launch.py truyền vào (không có thao tác xoay tại chỗ).
+
+controller_server:
+  ros__parameters:
+    controller_frequency: 20.0
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
+    min_theta_velocity_threshold: 0.001
+    failure_tolerance: 0.5
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugins: ["general_goal_checker"]
+    controller_plugins: ["FollowPath"]
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      # Bắt trường hợp xe đứng im hoặc giật tới lui tại chỗ. Bán kính nhỏ để một thao tác quay trở
+      # tiến/lùi trong phạm vi hẹp (mỗi đoạn dài 0,3 đến 0,5 m) không bị coi nhầm là kẹt.
+      required_movement_radius: 0.25
+      movement_time_allowance: 20.0
+    general_goal_checker:
+      plugin: "nav2_controller::SimpleGoalChecker"
+      stateful: true
+      xy_goal_tolerance: 0.12
+      yaw_goal_tolerance: 0.30
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      global_frame: odom
+      robot_base_frame: rear_axle
+      rolling_window: true
+      width: 3
+      height: 3
+      resolution: 0.05
+      footprint: "[[0.2225, 0.105], [0.2225, -0.105], [-0.0575, -0.105], [-0.0575, 0.105]]"
+      # Biên 3 cm cho kiểm tra va chạm của bộ bám đường và thao tác BackUp: xe dừng khi còn hở vài cm.
+      # Nếu để xe áp sát vật cản, BackUp bị từ chối vì thân xe đã nằm trong vùng va chạm và xe kẹt hẳn.
+      footprint_padding: 0.03
+      plugins: ["obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        observation_sources: scan
+        scan:
+          topic: /scan
+          data_type: "LaserScan"
+          marking: true
+          clearing: true
+          max_obstacle_height: 2.0
+          raytrace_max_range: 6.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 5.0
+          obstacle_min_range: 0.0
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.60
+        cost_scaling_factor: 2.5
+      always_send_full_costmap: true
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      update_frequency: 1.0
+      publish_frequency: 1.0
+      global_frame: map
+      robot_base_frame: rear_axle
+      resolution: 0.05
+      track_unknown_space: true
+      footprint: "[[0.2225, 0.105], [0.2225, -0.105], [-0.0575, -0.105], [-0.0575, 0.105]]"
+      # Bộ lập đường coi xe to hơn 5 cm mỗi phía để bù sai lệch bám đường; phải lớn hơn
+      # footprint_padding của local_costmap để đường đã lập còn dư chỗ cho bộ bám đường.
+      footprint_padding: 0.05
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: true
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        observation_sources: scan
+        scan:
+          topic: /scan
+          data_type: "LaserScan"
+          marking: true
+          clearing: true
+          max_obstacle_height: 2.0
+          raytrace_max_range: 6.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 5.0
+          obstacle_min_range: 0.0
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.60
+        cost_scaling_factor: 2.5
+      always_send_full_costmap: true
+
+planner_server:
+  ros__parameters:
+    expected_planner_frequency: 1.0
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_smac_planner/SmacPlannerHybrid"
+      downsample_costmap: false
+      downsampling_factor: 1
+      tolerance: 0.25
+      allow_unknown: true
+      max_iterations: 1000000
+      max_on_approach_iterations: 1000
+      max_planning_time: 5.0
+      # motion_model_for_search nằm trong controller_rpp.yaml và controller_mppi.yaml,
+      # vì mỗi bộ bám đường hợp với một kiểu đường khác nhau.
+      angle_quantization_bins: 72
+      analytic_expansion_ratio: 3.5
+      analytic_expansion_max_length: 3.0
+      # Lớn hơn bán kính quay nhỏ nhất của xe (0,38 m) để bộ điều khiển còn dư góc lái mà sửa sai lệch.
+      # Nếu đặt sát giới hạn, xe trượt khỏi cung cuối rồi chạy vòng quanh điểm đích.
+      minimum_turning_radius: 0.60
+      reverse_penalty: 2.0
+      change_penalty: 0.0
+      non_straight_penalty: 1.2
+      # Phạt mạnh các ô gần vật cản để đường đi tránh khe hẹp khi còn lối khác.
+      cost_penalty: 3.0
+      retrospective_penalty: 0.015
+      lookup_table_size: 20.0
+      cache_obstacle_heuristic: false
+      smooth_path: true
+      smoother:
+        max_iterations: 1000
+        w_smooth: 0.3
+        w_data: 0.2
+        tolerance: 1.0e-10
+        do_refinement: true
+
+behavior_server:
+  ros__parameters:
+    costmap_topic: local_costmap/costmap_raw
+    footprint_topic: local_costmap/published_footprint
+    cycle_frequency: 10.0
+    # spin vẫn được nạp để server đầy đủ, nhưng cây hành vi của xe này không gọi tới.
+    behavior_plugins: ["spin", "backup", "drive_on_heading", "wait"]
+    spin:
+      plugin: "nav2_behaviors/Spin"
+    backup:
+      plugin: "nav2_behaviors/BackUp"
+    drive_on_heading:
+      plugin: "nav2_behaviors/DriveOnHeading"
+    wait:
+      plugin: "nav2_behaviors/Wait"
+    global_frame: odom
+    robot_base_frame: rear_axle
+    transform_tolerance: 0.2
+    simulate_ahead_time: 2.0
+    max_rotational_vel: 0.5
+    min_rotational_vel: 0.1
+    rotational_acc_lim: 1.0
+
+velocity_smoother:
+  ros__parameters:
+    smoothing_frequency: 20.0
+    scale_velocities: false
+    feedback: "OPEN_LOOP"
+    max_velocity: [0.25, 0.0, 0.7]
+    min_velocity: [-0.25, 0.0, -0.7]
+    max_accel: [1.0, 0.0, 3.0]
+    max_decel: [-1.0, 0.0, -3.0]
+    odom_topic: "odom"
+    odom_duration: 0.1
+    deadband_velocity: [0.0, 0.0, 0.0]
+    # Hết lệnh từ bộ điều khiển thì phát vận tốc 0, vì plugin lái giữ lệnh cuối cùng.
+    velocity_timeout: 0.5

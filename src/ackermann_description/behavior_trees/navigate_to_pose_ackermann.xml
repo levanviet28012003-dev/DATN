@@ -1,0 +1,53 @@
+<!--
+  Cây hành vi đi tới một điểm đích cho xe Ackermann.
+  Dựa trên navigate_w_recovery_and_replanning_only_if_path_becomes_invalid.xml của Nav2 Humble:
+  - Chỉ lập lại đường đi khi có điểm đích mới hoặc đường hiện tại bị vật cản chặn (kiểm tra 1 lần mỗi giây).
+    Đường Hybrid-A* đã khả thi với xe nên được giữ nguyên tới đích.
+  - Bỏ thao tác Spin vì xe không xoay tại chỗ được; khi kẹt thì xóa costmap, lùi thẳng 0,5 m rồi chờ.
+    Với MPPI, bộ lập đường chỉ sinh đường tiến (Dubins), nên thao tác lùi này giúp xe thoát khi đứng sát vật cản.
+  - Sau mỗi thao tác hồi phục phải lập lại đường đi từ vị trí hiện tại; nếu giao lại đường cũ,
+    bộ điều khiển không tìm được đoạn đường gần xe ("Resulting plan has 0 poses"). Vì vậy FollowPath
+    không có vòng thử lại riêng.
+-->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RecoveryNode number_of_retries="8" name="NavigateRecovery">
+      <PipelineSequence name="NavigateWithReplanning">
+        <RateController hz="1.0" name="RateControllerComputePathToPose">
+          <RecoveryNode number_of_retries="1" name="RecoveryComputePathToPose">
+            <Fallback name="FallbackComputePathToPose">
+              <ReactiveSequence name="CheckIfNewPathNeeded">
+                <Inverter>
+                  <GlobalUpdatedGoal/>
+                </Inverter>
+                <IsPathValid path="{path}"/>
+              </ReactiveSequence>
+              <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+            </Fallback>
+            <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+          </RecoveryNode>
+        </RateController>
+        <!-- Không có vòng thử lại riêng cho FollowPath: mọi lỗi bám đường đều đi qua nhánh hồi phục
+             bên dưới, nơi đường đi luôn được lập lại từ vị trí hiện tại. -->
+        <FollowPath path="{path}" controller_id="FollowPath"/>
+      </PipelineSequence>
+      <ReactiveFallback name="RecoveryFallback">
+        <GoalUpdated/>
+        <Sequence name="RecoverThenReplan">
+          <RoundRobin name="RecoveryActions">
+            <Sequence name="ClearingActions">
+              <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </Sequence>
+            <BackUp backup_dist="0.50" backup_speed="0.10"/>
+            <Wait wait_duration="3"/>
+          </RoundRobin>
+          <!-- ForceSuccess: nếu chưa lập được đường thì vẫn quay lại vòng chính để thử thao tác hồi phục kế tiếp. -->
+          <ForceSuccess>
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+          </ForceSuccess>
+        </Sequence>
+      </ReactiveFallback>
+    </RecoveryNode>
+  </BehaviorTree>
+</root>

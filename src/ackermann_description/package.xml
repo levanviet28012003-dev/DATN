@@ -30,11 +30,27 @@
     <exec_depend>sensor_msgs</exec_depend>
     <exec_depend>tf2_msgs</exec_depend>
     <exec_depend>rosgraph_msgs</exec_depend>
+    <exec_depend>std_srvs</exec_depend>
     <exec_depend>ament_index_python</exec_depend>
     <exec_depend>launch</exec_depend>
     <exec_depend>launch_ros</exec_depend>
 
     <exec_depend>ros2launch</exec_depend>
+
+    <!-- Nav2: định vị, lập đường đi Smac Hybrid-A*, bám đường RPP và MPPI. -->
+    <exec_depend>nav2_map_server</exec_depend>
+    <exec_depend>nav2_amcl</exec_depend>
+    <exec_depend>nav2_lifecycle_manager</exec_depend>
+    <exec_depend>nav2_controller</exec_depend>
+    <exec_depend>nav2_planner</exec_depend>
+    <exec_depend>nav2_smac_planner</exec_depend>
+    <exec_depend>nav2_regulated_pure_pursuit_controller</exec_depend>
+    <exec_depend>nav2_mppi_controller</exec_depend>
+    <exec_depend>nav2_behaviors</exec_depend>
+    <exec_depend>nav2_bt_navigator</exec_depend>
+    <exec_depend>nav2_velocity_smoother</exec_depend>
+    <exec_depend>nav2_bringup</exec_depend>
+    <exec_depend>rviz2</exec_depend>
     <test_depend>ament_cmake_pytest</test_depend>
 
     <export>

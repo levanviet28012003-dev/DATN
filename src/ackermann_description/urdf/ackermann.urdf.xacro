@@ -15,6 +15,12 @@
   <xacro:property name="track_width" value="0.167"/>
   <xacro:property name="wheel_mass" value="0.080"/>
   <xacro:property name="base_mass" value="0.64"/>
+  <!-- Lidar 2D: kích thước, khối lượng và tầm đo ước lượng theo loại RPLIDAR A1. -->
+  <xacro:property name="lidar_radius" value="0.035"/>
+  <xacro:property name="lidar_height" value="0.040"/>
+  <xacro:property name="lidar_mass" value="0.170"/>
+  <xacro:property name="lidar_range_min" value="0.15"/>
+  <xacro:property name="lidar_range_max" value="12.0"/>
   <xacro:property name="palette" value="${dict(chassis='0.20 0.21 0.22 1', black='0.045 0.048 0.052 1', rubber='0.035 0.037 0.040 1', red='0.95 0.035 0.055 1', silver='0.70 0.72 0.74 1', gold='0.78 0.65 0.28 1')}"/>
   <xacro:macro name="paint" params="color">
     <!-- Khai báo màu RGBA trực tiếp để Gazebo giữ đúng màu. -->
@@ -94,6 +100,52 @@
     <parent link="base_link"/><child link="third_deck_link"/>
     <origin xyz="0 0 ${third_deck_z}"/>
   </joint>
+  <!-- Frame tại tâm trục sau, không có khối lượng. Nav2 dùng frame này làm gốc của xe vì mô hình
+       Ackermann (plugin lái, Smac Hybrid-A*, RPP, MPPI) lấy tâm trục sau làm điểm tham chiếu. -->
+  <link name="rear_axle"/>
+  <joint name="rear_axle_joint" type="fixed">
+    <parent link="base_link"/><child link="rear_axle"/>
+    <origin xyz="${-wheelbase/2} 0 0"/>
+  </joint>
+  <!-- Lidar 2D quét 360°, đặt giữa tầng thứ ba; gốc lidar_link là tâm mặt phẳng quét. -->
+  <link name="lidar_link">
+    <inertial>
+      <mass value="${lidar_mass}"/>
+      <inertia ixx="${lidar_mass*(3*lidar_radius**2+lidar_height**2)/12}" ixy="0" ixz="0"
+               iyy="${lidar_mass*(3*lidar_radius**2+lidar_height**2)/12}" iyz="0"
+               izz="${lidar_mass*lidar_radius**2/2}"/>
+    </inertial>
+    <xacro:cylinder_visual xyz="0 0 0" radius="${lidar_radius}" length="${lidar_height}" material="black"/>
+    <collision name="lidar_body">
+      <geometry><cylinder radius="${lidar_radius}" length="${lidar_height}"/></geometry>
+    </collision>
+  </link>
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link"/><child link="lidar_link"/>
+    <origin xyz="0 0 ${third_deck_z+plate_thickness/2+lidar_height/2}"/>
+  </joint>
+  <!-- Cảm biến chỉ phát dữ liệu khi world có plugin Sensors (xem worlds/nav_world.sdf). -->
+  <gazebo reference="lidar_link">
+    <sensor name="lidar" type="gpu_lidar">
+      <topic>/model/ackermann_car/scan</topic>
+      <ignition_frame_id>lidar_link</ignition_frame_id>
+      <update_rate>10</update_rate>
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <lidar>
+        <scan>
+          <horizontal>
+            <!-- 360 tia cách nhau 1°, từ -180° đến 179° để không trùng tia đầu và tia cuối. -->
+            <samples>360</samples><resolution>1</resolution>
+            <min_angle>${-pi}</min_angle><max_angle>${pi*179/180}</max_angle>
+          </horizontal>
+        </scan>
+        <!-- Tầm đo nhỏ nhất lớn hơn thân xe nên tia không chạm chính xe. -->
+        <range><min>${lidar_range_min}</min><max>${lidar_range_max}</max><resolution>0.01</resolution></range>
+        <noise><type>gaussian</type><mean>0.0</mean><stddev>0.01</stddev></noise>
+      </lidar>
+    </sensor>
+  </gazebo>
   <!-- Bánh xe gồm lốp đen, viền đỏ, nan đen và ốc bạc. -->
   <xacro:macro name="wheel_visual" params="color">
     <visual name="wheel_${color}">

@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<!-- File được sinh bởi scripts/generate_world.py. Không sửa tay; sửa script rồi chạy lại. -->
+<sdf version="1.8">
+  <world name="nav_world">
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <!-- Khi world tự khai báo plugin, Gazebo không nạp bộ mặc định nên phải liệt kê đủ. -->
+    <plugin filename="ignition-gazebo-physics-system" name="ignition::gazebo::systems::Physics"/>
+    <plugin filename="ignition-gazebo-user-commands-system" name="ignition::gazebo::systems::UserCommands"/>
+    <plugin filename="ignition-gazebo-scene-broadcaster-system" name="ignition::gazebo::systems::SceneBroadcaster"/>
+    <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse><specular>0.1 0.1 0.1 1</specular></material>
+        </visual>
+      </link>
+    </model>
+    <model name="arena">
+      <static>true</static>
+      <link name="link">
+        <collision name="wall_north_collision"><pose>0 3 0.2 0 0 0</pose><geometry><box><size>8.1 0.1 0.4</size></box></geometry></collision>
+        <visual name="wall_north_visual"><pose>0 3 0.2 0 0 0</pose><geometry><box><size>8.1 0.1 0.4</size></box></geometry><material><ambient>0.55 0.55 0.58 1</ambient><diffuse>0.55 0.55 0.58 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+        <collision name="wall_south_collision"><pose>0 -3 0.2 0 0 0</pose><geometry><box><size>8.1 0.1 0.4</size></box></geometry></collision>
+        <visual name="wall_south_visual"><pose>0 -3 0.2 0 0 0</pose><geometry><box><size>8.1 0.1 0.4</size></box></geometry><material><ambient>0.55 0.55 0.58 1</ambient><diffuse>0.55 0.55 0.58 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+        <collision name="wall_east_collision"><pose>4 0 0.2 0 0 0</pose><geometry><box><size>0.1 6.1 0.4</size></box></geometry></collision>
+        <visual name="wall_east_visual"><pose>4 0 0.2 0 0 0</pose><geometry><box><size>0.1 6.1 0.4</size></box></geometry><material><ambient>0.55 0.55 0.58 1</ambient><diffuse>0.55 0.55 0.58 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+        <collision name="wall_west_collision"><pose>-4 0 0.2 0 0 0</pose><geometry><box><size>0.1 6.1 0.4</size></box></geometry></collision>
+        <visual name="wall_west_visual"><pose>-4 0 0.2 0 0 0</pose><geometry><box><size>0.1 6.1 0.4</size></box></geometry><material><ambient>0.55 0.55 0.58 1</ambient><diffuse>0.55 0.55 0.58 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+        <collision name="divider_west_collision"><pose>-1.6 -0.2 0.2 0 0 0</pose><geometry><box><size>0.1 1.8 0.4</size></box></geometry></collision>
+        <visual name="divider_west_visual"><pose>-1.6 -0.2 0.2 0 0 0</pose><geometry><box><size>0.1 1.8 0.4</size></box></geometry><material><ambient>0.55 0.55 0.58 1</ambient><diffuse>0.55 0.55 0.58 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+        <collision name="divider_north_collision"><pose>1.4 1 0.2 0 0 0</pose><geometry><box><size>1.2 0.1 0.4</size></box></geometry></collision>
+        <visual name="divider_north_visual"><pose>1.4 1 0.2 0 0 0</pose><geometry><box><size>1.2 0.1 0.4</size></box></geometry><material><ambient>0.55 0.55 0.58 1</ambient><diffuse>0.55 0.55 0.58 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+        <collision name="box_a_collision"><pose>-2.8 1.5 0.2 0 0 0</pose><geometry><box><size>0.4 0.4 0.4</size></box></geometry></collision>
+        <visual name="box_a_visual"><pose>-2.8 1.5 0.2 0 0 0</pose><geometry><box><size>0.4 0.4 0.4</size></box></geometry><material><ambient>0.90 0.45 0.10 1</ambient><diffuse>0.90 0.45 0.10 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+        <collision name="box_b_collision"><pose>3.65 2 0.2 0 0 0</pose><geometry><box><size>0.6 0.3 0.4</size></box></geometry></collision>
+        <visual name="box_b_visual"><pose>3.65 2 0.2 0 0 0</pose><geometry><box><size>0.6 0.3 0.4</size></box></geometry><material><ambient>0.90 0.45 0.10 1</ambient><diffuse>0.90 0.45 0.10 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+        <collision name="box_c_collision"><pose>-3.75 -1.6 0.2 0 0 0</pose><geometry><box><size>0.4 0.6 0.4</size></box></geometry></collision>
+        <visual name="box_c_visual"><pose>-3.75 -1.6 0.2 0 0 0</pose><geometry><box><size>0.4 0.6 0.4</size></box></geometry><material><ambient>0.90 0.45 0.10 1</ambient><diffuse>0.90 0.45 0.10 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+        <collision name="cylinder_a_collision"><pose>-0.2 1.7 0.2 0 0 0</pose><geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry></collision>
+        <visual name="cylinder_a_visual"><pose>-0.2 1.7 0.2 0 0 0</pose><geometry><cylinder><radius>0.25</radius><length>0.4</length></cylinder></geometry><material><ambient>0.90 0.45 0.10 1</ambient><diffuse>0.90 0.45 0.10 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+        <collision name="cylinder_b_collision"><pose>0.4 -1.5 0.2 0 0 0</pose><geometry><cylinder><radius>0.2</radius><length>0.4</length></cylinder></geometry></collision>
+        <visual name="cylinder_b_visual"><pose>0.4 -1.5 0.2 0 0 0</pose><geometry><cylinder><radius>0.2</radius><length>0.4</length></cylinder></geometry><material><ambient>0.90 0.45 0.10 1</ambient><diffuse>0.90 0.45 0.10 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      </link>
+    </model>
+  </world>
+</sdf>

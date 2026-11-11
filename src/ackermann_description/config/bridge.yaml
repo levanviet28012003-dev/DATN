@@ -31,6 +31,13 @@
   gz_type_name: ignition.msgs.Pose_V
   direction: GZ_TO_ROS
 
+# Dữ liệu Lidar 2D; chỉ có khi world nạp plugin Sensors.
+- ros_topic_name: /scan
+  gz_topic_name: /model/ackermann_car/scan
+  ros_type_name: sensor_msgs/msg/LaserScan
+  gz_type_name: ignition.msgs.LaserScan
+  direction: GZ_TO_ROS
+
 # Đồng bộ thời gian ROS 2 với thời gian mô phỏng.
 - ros_topic_name: /clock
   gz_topic_name: /clock

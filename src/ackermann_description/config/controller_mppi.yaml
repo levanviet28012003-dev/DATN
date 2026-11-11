@@ -1,0 +1,97 @@
+# Bộ điều khiển bám đường MPPI với mô hình Ackermann, dùng khi controller:=mppi.
+# Đi kèm đường Dubins (chỉ tiến): với đường Reeds-Shepp, MPPI của Humble chững lại ở các điểm đổi chiều
+# (đã thử, một cú quay đầu mất 137 s). MPPI vẫn tự lùi chậm được khi cần (vx_min âm).
+planner_server:
+  ros__parameters:
+    GridBased:
+      motion_model_for_search: "DUBIN"
+
+controller_server:
+  ros__parameters:
+    FollowPath:
+      plugin: "nav2_mppi_controller::MPPIController"
+      # Tầm dự đoán 70 × 0,05 s = 3,5 s, tức khoảng 0,7 m ở tốc độ tối đa; dài hơn hằng số
+      # thời gian của khớp lái (khoảng 1 s).
+      time_steps: 70
+      model_dt: 0.05
+      batch_size: 1000
+      iteration_count: 1
+      vx_std: 0.12
+      vy_std: 0.0
+      wz_std: 0.25
+      vx_max: 0.20
+      # Đường Dubins chỉ có đoạn tiến; cho lùi chậm để MPPI tự sửa khi trượt qua điểm đích.
+      vx_min: -0.10
+      vy_max: 0.0
+      wz_max: 0.5
+      prune_distance: 1.5
+      transform_tolerance: 0.2
+      temperature: 0.3
+      gamma: 0.015
+      motion_model: "Ackermann"
+      visualize: false
+      reset_period: 1.0
+      regenerate_noises: false
+      AckermannConstraints:
+        min_turning_r: 0.45
+      TrajectoryVisualizer:
+        trajectory_step: 5
+        time_step: 3
+      critics: ["ConstraintCritic", "CostCritic", "GoalCritic", "GoalAngleCritic",
+                "PathAlignCritic", "PathFollowCritic", "PathAngleCritic", "PreferForwardCritic"]
+      ConstraintCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+      CostCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 3.81
+        critical_cost: 300.0
+        consider_footprint: true
+        collision_cost: 1000000.0
+        near_goal_distance: 0.5
+      GoalCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 0.6
+      # Xe không xoay tại chỗ được nên phải chỉnh hướng từ xa hơn và ưu tiên cao hơn mặc định.
+      GoalAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 0.5
+      PathAlignCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 10.0
+        max_path_occupancy_ratio: 0.05
+        trajectory_point_step: 4
+        # Bám đường tới khi cách đích 0,2 m để vào đích theo đúng cung cuối của đường đi.
+        threshold_to_consider: 0.2
+        # Tiêu chí này chỉ bật khi quỹ đạo dự đoán vươn quá số điểm đường đi này. Đường Smac có các điểm
+        # cách nhau khoảng 0,08 m và tầm dự đoán chỉ khoảng 0,6 m (7 đến 8 điểm), nên giá trị mặc định 20
+        # hoặc 8 làm tiêu chí gần như không bao giờ bật và xe chạy lệch đường đi cỡ 0,2 m.
+        offset_from_furthest: 4
+        use_path_orientations: true
+      # Tiêu chí thúc xe tiến dọc đường đi; với trọng số mặc định 5 xe chỉ chạy khoảng 0,07 m/s.
+      PathFollowCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 10.0
+        offset_from_furthest: 5
+        threshold_to_consider: 0.6
+      PathAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 2.0
+        offset_from_furthest: 4
+        threshold_to_consider: 0.4
+        max_angle_to_furthest: 1.0
+        forward_preference: true
+      PreferForwardCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 0.4
