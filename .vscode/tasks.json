@@ -1,0 +1,14 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "STM32: build",
+            "type": "process",
+            "command": "make",
+            "args": ["-j4"],
+            "options": {"cwd": "${workspaceFolder}/firmware/stm32f103c8t6"},
+            "group": {"kind": "build", "isDefault": true},
+            "problemMatcher": ["$gcc"]
+        }
+    ]
+}

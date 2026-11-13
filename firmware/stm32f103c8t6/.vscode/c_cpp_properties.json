@@ -1,0 +1,20 @@
+{
+    "version": 4,
+    "configurations": [
+        {
+            "name": "STM32F103C8T6",
+            "compilerPath": "/usr/bin/arm-none-eabi-gcc",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "compilerArgs": ["-mcpu=cortex-m3", "-mthumb", "-ffreestanding"],
+            "intelliSenseMode": "linux-gcc-arm",
+            "cStandard": "c11",
+            "includePath": [
+                "${workspaceFolder}/core/inc",
+                "${workspaceFolder}/driver/inc",
+                "${workspaceFolder}/driver/device/inc",
+                "${workspaceFolder}/peripheral/inc"
+            ],
+            "defines": ["STM32F103C8T6", "STM32F103xB"]
+        }
+    ]
+}

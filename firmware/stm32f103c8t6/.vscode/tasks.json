@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "STM32: build",
+            "type": "process",
+            "command": "make",
+            "args": ["-j4"],
+            "options": {"cwd": "${workspaceFolder}"},
+            "group": {"kind": "build", "isDefault": true},
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "STM32: flash",
+            "type": "process",
+            "command": "make",
+            "args": ["flash"],
+            "options": {"cwd": "${workspaceFolder}"},
+            "problemMatcher": ["$gcc"]
+        }
+    ]
+}

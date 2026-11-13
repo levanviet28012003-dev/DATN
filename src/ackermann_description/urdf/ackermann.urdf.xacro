@@ -4,10 +4,8 @@
   <xacro:property name="base_length" value="0.270"/>
   <xacro:property name="base_width" value="0.1205"/>
   <xacro:property name="plate_thickness" value="0.002"/>
-  <!-- Tầng thứ ba cao hơn tầng thứ hai 52 mm. -->
-  <xacro:property name="third_deck_z" value="0.095"/>
-  <xacro:property name="deck_spacing" value="0.052"/>
-  <xacro:property name="third_deck_mass" value="0.150"/>
+  <!-- Tâm tầng trên cao hơn trục bánh 43 mm. -->
+  <xacro:property name="upper_deck_z" value="0.043"/>
   <!-- Thông số kích thước và khối lượng bánh xe. -->
   <xacro:property name="wheel_radius" value="0.0375"/>
   <xacro:property name="wheel_width" value="0.030"/>
@@ -33,15 +31,15 @@
   <xacro:macro name="cylinder_visual" params="xyz radius length material rpy:='0 0 0'">
     <visual><origin xyz="${xyz}" rpy="${rpy}"/><geometry><cylinder radius="${radius}" length="${length}"/></geometry><xacro:paint color="${material}"/></visual>
   </xacro:macro>
-  <!-- Thân xe gồm hai tầng dưới, cụm cơ khí và thông số vật lý. -->
+  <!-- Thân xe gồm hai tầng, cụm cơ khí và thông số vật lý. -->
   <link name="base_link">
     <inertial><origin xyz="-0.015 0 0.015"/><mass value="${base_mass}"/>
       <inertia ixx="0.0009" ixy="0" ixz="0" iyy="0.0035" iyz="0" izz="0.0041"/>
     </inertial>
     <visual><origin xyz="0 0 -0.009"/><geometry><mesh filename="package://ackermann_description/meshes/chassis_plate.stl"/></geometry><xacro:paint color="chassis"/></visual>
-    <visual><origin xyz="0 0 0.043"/><geometry><mesh filename="package://ackermann_description/meshes/chassis_plate.stl"/></geometry><xacro:paint color="chassis"/></visual>
+    <visual><origin xyz="0 0 ${upper_deck_z}"/><geometry><mesh filename="package://ackermann_description/meshes/chassis_plate.stl"/></geometry><xacro:paint color="chassis"/></visual>
     <collision name="lower_deck"><origin xyz="0 0 -0.009"/><geometry><box size="${base_length} ${base_width} ${plate_thickness}"/></geometry></collision>
-    <collision name="upper_deck"><origin xyz="0 0 0.043"/><geometry><box size="${base_length} ${base_width} ${plate_thickness}"/></geometry></collision>
+    <collision name="upper_deck"><origin xyz="0 0 ${upper_deck_z}"/><geometry><box size="${base_length} ${base_width} ${plate_thickness}"/></geometry></collision>
     <!-- Servo LD-1501MG kích thước 40 × 20 × 40,5 mm, lắp ngang xe. -->
     <xacro:box_visual xyz="0.083 0 0.013" size="0.020 0.040 0.0405" material="black"/>
     <xacro:box_visual xyz="0.096 0 0.006" size="0.003 0.049 0.028" material="black"/>
@@ -62,44 +60,6 @@
     </xacro:macro>
     <xacro:hardware_side s="1"/><xacro:hardware_side s="-1"/>
   </link>
-  <!-- Tầng thứ ba có sáu trụ đỡ, khối lượng ước lượng 150 g. -->
-  <link name="third_deck_link">
-    <inertial>
-      <origin xyz="0 0 -0.004"/>
-      <mass value="${third_deck_mass}"/>
-      <inertia ixx="${third_deck_mass*(base_width**2+deck_spacing**2)/12}" ixy="0" ixz="0"
-               iyy="${third_deck_mass*(base_length**2+deck_spacing**2)/12}" iyz="0"
-               izz="${third_deck_mass*(base_length**2+base_width**2)/12}"/>
-    </inertial>
-    <visual name="third_deck_plate">
-      <geometry><mesh filename="package://ackermann_description/meshes/chassis_plate.stl"/></geometry>
-      <xacro:paint color="chassis"/>
-    </visual>
-    <collision name="third_deck_plate_collision">
-      <geometry><box size="${base_length} ${base_width} ${plate_thickness}"/></geometry>
-    </collision>
-    <xacro:macro name="third_deck_post" params="id x y">
-      <xacro:cylinder_visual xyz="${x} ${y} ${-deck_spacing/2}"
-                             radius="0.0025" length="${deck_spacing-plate_thickness}" material="gold"/>
-      <xacro:cylinder_visual xyz="${x} ${y} 0.002"
-                             radius="0.0035" length="0.002" material="silver"/>
-      <collision name="third_deck_post_${id}">
-        <origin xyz="${x} ${y} ${-deck_spacing/2}"/>
-        <geometry><cylinder radius="0.0025" length="${deck_spacing-plate_thickness}"/></geometry>
-      </collision>
-    </xacro:macro>
-    <xacro:third_deck_post id="front_left" x="0.110" y="0.044"/>
-    <xacro:third_deck_post id="front_right" x="0.110" y="-0.044"/>
-    <xacro:third_deck_post id="middle_left" x="0.045" y="0.040"/>
-    <xacro:third_deck_post id="middle_right" x="0.045" y="-0.040"/>
-    <xacro:third_deck_post id="rear_left" x="-0.115" y="0.049"/>
-    <xacro:third_deck_post id="rear_right" x="-0.115" y="-0.049"/>
-  </link>
-  <!-- Khớp cố định gắn tầng thứ ba vào thân xe. -->
-  <joint name="third_deck_joint" type="fixed">
-    <parent link="base_link"/><child link="third_deck_link"/>
-    <origin xyz="0 0 ${third_deck_z}"/>
-  </joint>
   <!-- Frame tại tâm trục sau, không có khối lượng. Nav2 dùng frame này làm gốc của xe vì mô hình
        Ackermann (plugin lái, Smac Hybrid-A*, RPP, MPPI) lấy tâm trục sau làm điểm tham chiếu. -->
   <link name="rear_axle"/>
@@ -107,7 +67,7 @@
     <parent link="base_link"/><child link="rear_axle"/>
     <origin xyz="${-wheelbase/2} 0 0"/>
   </joint>
-  <!-- Lidar 2D quét 360°, đặt giữa tầng thứ ba; gốc lidar_link là tâm mặt phẳng quét. -->
+  <!-- Lidar 2D quét 360°, đặt giữa tầng trên; gốc lidar_link là tâm mặt phẳng quét. -->
   <link name="lidar_link">
     <inertial>
       <mass value="${lidar_mass}"/>
@@ -122,9 +82,9 @@
   </link>
   <joint name="lidar_joint" type="fixed">
     <parent link="base_link"/><child link="lidar_link"/>
-    <origin xyz="0 0 ${third_deck_z+plate_thickness/2+lidar_height/2}"/>
+    <origin xyz="0 0 ${upper_deck_z+plate_thickness/2+lidar_height/2}"/>
   </joint>
-  <!-- Cảm biến chỉ phát dữ liệu khi world có plugin Sensors (xem worlds/nav_world.sdf). -->
+  <!-- Cảm biến chỉ phát dữ liệu khi world có plugin Sensors (xem ackermann_bringup/worlds/nav_world.sdf). -->
   <gazebo reference="lidar_link">
     <sensor name="lidar" type="gpu_lidar">
       <topic>/model/ackermann_car/scan</topic>

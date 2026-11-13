@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "STM32: debug qua ST-Link",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/ackermann.elf",
+            "device": "STM32F103C8",
+            "interface": "swd",
+            "configFiles": ["interface/stlink.cfg", "target/stm32f1x.cfg"],
+            "gdbPath": "/usr/bin/gdb-multiarch",
+            "objdumpPath": "/usr/bin/arm-none-eabi-objdump",
+            "runToEntryPoint": "main",
+            "preLaunchTask": "STM32: build"
+        }
+    ]
+}
