@@ -1,1 +1,0 @@
-/home/viet/ackermann_ws/build/ackermann_description/ament_cmake_core/ackermann_descriptionConfig-version.cmake

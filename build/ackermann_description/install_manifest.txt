@@ -1,2 +1,0 @@
-/home/viet/ackermann_ws/install/ackermann_description/lib/ackermann_description/manual_control
-/home/viet/ackermann_ws/install/ackermann_description/lib/ackermann_description/trajectory_controller
