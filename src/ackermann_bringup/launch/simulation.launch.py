@@ -14,7 +14,7 @@ def generate_launch_description():
     description = get_package_share_directory('ackermann_description')
     gazebo = get_package_share_directory('ros_gz_sim')
     return LaunchDescription([
-        DeclareLaunchArgument('gz_args', default_value='-r empty.sdf',
+        DeclareLaunchArgument('gz_args', default_value='-r ' + os.path.join(package, 'worlds', 'gps_world.sdf'),
                               description='Tham số Gazebo; thêm -s để chạy không giao diện.'),
         SetEnvironmentVariable('IGN_GAZEBO_RESOURCE_PATH', os.path.dirname(description)
                                + os.pathsep + os.environ.get('IGN_GAZEBO_RESOURCE_PATH', '')),

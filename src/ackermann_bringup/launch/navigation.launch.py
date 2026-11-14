@@ -6,9 +6,8 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PythonExpression, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
@@ -18,6 +17,8 @@ def generate_launch_description():
     world = os.path.join(package, 'worlds', 'nav_world.sdf')
     gz_args = [PythonExpression([
         "'-r -s ' if '", LaunchConfiguration('headless'), "' == 'true' else '-r '"]), world]
+    rviz_environment = {key: '' for key in ('GTK_PATH', 'GTK_EXE_PREFIX', 'GIO_MODULE_DIR')
+                        if '/snap/' in os.environ.get(key, '')}
     return LaunchDescription([
         DeclareLaunchArgument('controller', default_value='rpp', choices=['rpp', 'mppi']),
         DeclareLaunchArgument('headless', default_value='false', choices=['true', 'false']),
@@ -33,8 +34,12 @@ def generate_launch_description():
             launch_arguments={'controller': LaunchConfiguration('controller'), 'use_sim_time': 'true'}.items()),
         Node(package='ackermann_bringup', executable='obstacle_spawner', name='obstacle_spawner',
              output='screen', parameters=[{'use_sim_time': True, 'world': 'nav_world'}]),
+        Node(package='ackermann_sensors', executable='gps_visualizer', name='gps_visualizer',
+             output='screen', parameters=[{'use_sim_time': True, 'text_height': 0.18,
+                                          'text_color': [0.05, 0.1, 0.65]}],
+             condition=IfCondition(LaunchConfiguration('rviz'))),
         Node(package='rviz2', executable='rviz2', name='rviz2', output='screen',
-             arguments=['-d', PathJoinSubstitution([
-                 FindPackageShare('nav2_bringup'), 'rviz', 'nav2_default_view.rviz'])],
-             parameters=[{'use_sim_time': True}], condition=IfCondition(LaunchConfiguration('rviz'))),
+             arguments=['-d', os.path.join(package, 'rviz', 'navigation.rviz')],
+             parameters=[{'use_sim_time': True}], additional_env=rviz_environment,
+             condition=IfCondition(LaunchConfiguration('rviz'))),
     ])

@@ -2,6 +2,26 @@
 
 Hướng dẫn làm việc trong repo này. Trạng thái dự án và việc còn lại nằm ở [progress.md](progress.md); hãy cập nhật file đó khi hoàn thành một hạng mục.
 
+## Bổ sung GPS ngày 2026-11-14
+
+Sau khi tách workspace thành 6 package, lệnh mô phỏng hiện tại là
+`ros2 launch ackermann_bringup simulation.launch.py`; các lệnh dưới đây dùng tên
+`ackermann_description display.launch.py` thuộc cấu trúc cũ.
+Mô hình hai tầng có `gps_link`, NavSat 5 Hz; bridge `/gps/fix` kiểu `sensor_msgs/msg/NavSatFix`.
+World mặc định là `ackermann_bringup/worlds/gps_world.sdf`; `nav_world.sdf` cũng có GPS.
+Cả hai dùng NavSat plugin Fortress và mốc WGS84 minh họa (10°, 106°, 0 m), hướng ENU.
+Không dùng `empty.sdf` để kiểm tra GPS. Chưa thêm nhiễu GPS, IMU hoặc EKF.
+GPS lý tưởng và covariance UNKNOWN không đại diện độ chính xác GPS điện thoại.
+Sinh world bằng `python3 src/ackermann_bringup/scripts/generate_world.py`.
+Xem hướng dẫn hiện tại ở `src/README.md` và `src/ackermann_bringup/README.md`.
+Xem chữ tọa độ GPS trong RViz: `ros2 launch ackermann_bringup gps_view.launch.py`
+(mặc định dùng Gazebo đang chạy; thêm `start_sim:=true` để mở mô phỏng từ đầu).
+Node `ackermann_sensors/gps_visualizer` chuyển `/gps/fix` thành `/gps/marker`,
+gắn chữ với TF `gps_link`; chưa dùng GPS để tính vị trí xe trong hệ mét.
+Để xem cả phòng/vật cản và GPS, dùng `navigation.launch.py`: launch đã chạy
+`gps_visualizer` và mở `ackermann_bringup/rviz/navigation.rviz` (Fixed Frame `map`).
+`gps_view` chỉ là giao diện xe/GPS; `start_sim:=true` dùng world GPS trống.
+
 ## Tổng quan
 
 Xe tự hành khung gầm Ackermann, gồm hai phần:
@@ -9,7 +29,7 @@ Xe tự hành khung gầm Ackermann, gồm hai phần:
 - `src/ackermann_description/`: gói ROS 2 Humble (`ament_cmake`, node viết bằng Python) mô phỏng xe trên Gazebo Fortress, bám quỹ đạo bằng Pure Pursuit, và tự đi tới điểm đích bằng Nav2 (Smac Hybrid-A*, RPP hoặc MPPI) với Lidar 2D. Phần này đã chạy được trên mô phỏng.
 - `firmware/stm32f103c8t6/`: firmware cho xe thật. **Hiện toàn bộ file đều rỗng (0 byte)**, chưa có code, đừng giả định các API trong đó đã tồn tại.
 
-Chưa có cầu nối giữa ROS và firmware. Cảm biến duy nhất trong mô hình là Lidar 2D (thông số ước lượng theo RPLIDAR A1).
+Chưa có cầu nối giữa ROS và firmware. Mô hình có Lidar 2D (thông số ước lượng theo RPLIDAR A1) và GPS NavSat mô phỏng.
 
 ## Môi trường
 

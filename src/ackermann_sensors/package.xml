@@ -2,7 +2,7 @@
 <package format="3">
   <name>ackermann_sensors</name>
   <version>0.0.1</version>
-  <description>Placeholder package for real sensor drivers and configuration</description>
+  <description>Sensor visualization and configuration for the Ackermann car</description>
   <maintainer email="student@example.com">Student</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -10,5 +10,9 @@
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>ros2launch</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
   <export><build_type>ament_cmake</build_type></export>
 </package>

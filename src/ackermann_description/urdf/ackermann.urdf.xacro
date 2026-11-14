@@ -84,6 +84,31 @@
     <parent link="base_link"/><child link="lidar_link"/>
     <origin xyz="0 0 ${upper_deck_z+plate_thickness/2+lidar_height/2}"/>
   </joint>
+  <!-- GPS mô phỏng gắn phía sau Lidar, trên tầng trên. -->
+  <link name="gps_link">
+    <inertial>
+      <mass value="0.005"/>
+      <inertia ixx="0.000000121667" ixy="0" ixz="0"
+               iyy="0.000000121667" iyz="0" izz="0.000000213333"/>
+    </inertial>
+    <xacro:box_visual xyz="0 0 0" size="0.016 0.016 0.006" material="silver"/>
+  </link>
+  <joint name="gps_joint" type="fixed">
+    <parent link="base_link"/><child link="gps_link"/>
+    <origin xyz="-0.070 0 ${upper_deck_z+plate_thickness/2+0.003}"/>
+  </joint>
+  <!-- NavSat dùng plugin riêng trong world; không cần bộ dựng hình của Lidar. -->
+  <gazebo reference="gps_link">
+    <sensor name="gps" type="navsat">
+      <topic>/model/ackermann_car/gps/fix</topic>
+      <ignition_frame_id>gps_link</ignition_frame_id>
+      <update_rate>5</update_rate>
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <!-- Chưa thêm nhiễu để kiểm chứng tọa độ; chưa mô phỏng sai số điện thoại. -->
+      <navsat/>
+    </sensor>
+  </gazebo>
   <!-- Cảm biến chỉ phát dữ liệu khi world có plugin Sensors (xem ackermann_bringup/worlds/nav_world.sdf). -->
   <gazebo reference="lidar_link">
     <sensor name="lidar" type="gpu_lidar">

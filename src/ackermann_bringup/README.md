@@ -9,7 +9,7 @@ Các package trong workspace:
 | `ackermann_navigation` | Nav2, bộ điều khiển và bám quỹ đạo |
 | `ackermann_localization` | AMCL, map_server và bản đồ |
 | `ackermann_hardware` | Khung cho giao tiếp UART STM32, chưa có node |
-| `ackermann_sensors` | Khung cho driver cảm biến thật, chưa có node |
+| `ackermann_sensors` | Hiển thị GPS trong RViz; khung cho driver cảm biến thật |
 
 Mỗi package dùng `ament_cmake`. Build `ackermann_bringup` cùng các dependency nội bộ để cài đủ tài nguyên.
 `description.launch.py` chỉ xuất mô hình; `simulation.launch.py` mở Gazebo; `navigation.launch.py`
@@ -83,7 +83,7 @@ ros2 topic echo /joint_states
 Để chạy Gazebo không có giao diện:
 
 ```bash
-ros2 launch ackermann_bringup simulation.launch.py gz_args:="-r -s empty.sdf"
+ros2 launch ackermann_bringup simulation.launch.py gz_args:="-r -s $(ros2 pkg prefix ackermann_bringup)/share/ackermann_bringup/worlds/gps_world.sdf"
 ```
 
 Các tệp điều khiển:
@@ -170,11 +170,97 @@ Nguồn phản hồi mô phỏng: [Gazebo Fortress OdometryPublisher](https://ga
 
 Xe có hai tầng, Lidar 2D quét 360° đặt giữa tầng trên (`lidar_link`, cao hơn `base_link` 0,064 m): 360 tia, 10 Hz, tầm đo 0,15 đến 12 m, nhiễu Gauss 1 cm. Kích thước, khối lượng 170 g và tầm đo là ước lượng theo loại RPLIDAR A1, chưa đối chiếu với cảm biến thật. Dữ liệu ra topic `/scan` (`sensor_msgs/msg/LaserScan`, frame `lidar_link`).
 
-Lidar chỉ phát dữ liệu khi world nạp plugin `Sensors`. `ackermann_bringup/worlds/nav_world.sdf` có plugin này; `empty.sdf` thì không, nên chạy `ackermann_bringup/launch/simulation.launch.py` mặc định sẽ không có `/scan`.
+Lidar chỉ phát dữ liệu khi world nạp plugin `Sensors`. `ackermann_bringup/worlds/nav_world.sdf` có plugin này; `gps_world.sdf` mặc định chỉ có GPS, không nạp bộ dựng hình Sensors nên không có dữ liệu `/scan`. Khi chạy `navigation.launch.py`, world `nav_world.sdf` có cả GPS và Lidar.
+
+## GPS trong Gazebo
+
+`simulation.launch.py` và `trajectory.launch.py` mặc định dùng world trống `gps_world.sdf`,
+được bổ sung plugin NavSat. World điều hướng `nav_world.sdf` cũng có cùng plugin và mốc địa lý.
+Mốc **minh họa** là vĩ độ 10°, kinh độ 106°, độ cao 0 m, trục +X hướng Đông, +Y hướng Bắc.
+Đổi các hằng số `GPS_*` trong `scripts/generate_world.py` rồi sinh lại world nếu cần đổi mốc.
+Đây không phải tọa độ đo từ điện thoại hoặc vị trí thực của người dùng.
+
+Terminal thứ nhất, từ gốc workspace:
+
+```bash
+source /opt/ros/humble/setup.bash
+colcon build --packages-up-to ackermann_bringup
+source install/setup.bash
+ros2 launch ackermann_bringup simulation.launch.py
+```
+
+Terminal thứ hai:
+
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 topic info /gps/fix
+ros2 topic echo /gps/fix --once
+ros2 topic hz /gps/fix
+```
+
+Topic có kiểu `sensor_msgs/msg/NavSatFix`, `header.frame_id: gps_link`, vĩ độ/kinh độ
+đơn vị độ, độ cao đơn vị mét. Tần số cảm biến là 5 Hz theo **thời gian mô phỏng**;
+`ros2 topic hz` có thể thấp hơn nếu Gazebo chạy chậm. Chỉ kiểm tra khi mô phỏng đang Play.
+
+Dừng lệnh `hz` bằng Ctrl+C, rồi cho xe chạy để xem tọa độ thay đổi:
+
+```bash
+ros2 run ackermann_bringup manual_control forward --speed 0.2 --duration 3
+```
+
+GPS hiện chưa thêm nhiễu. Bridge Fortress không cung cấp covariance đo, nên
+`position_covariance_type` là UNKNOWN (0); các số 0 trong covariance không có nghĩa là không có sai số.
+Đây mới là nguồn GPS: chưa thêm IMU, EKF, định vị GPS thay AMCL hoặc bộ theo điểm GPS.
+Nếu tự chọn `empty.sdf`, GPS không phát dữ liệu vì world đó thiếu plugin NavSat/mốc địa lý.
+
+### Xem tọa độ GPS trong RViz
+
+**Muốn thấy cả phòng, vật cản và GPS:** đóng launch mô phỏng/GPS cũ bằng Ctrl+C,
+rồi chạy `ros2 launch ackermann_bringup navigation.launch.py`.
+Launch này mở `nav_world.sdf`, map_server, AMCL, Nav2 và RViz với cấu hình
+`rviz/navigation.rviz`; tọa độ GPS được thêm sẵn bên cạnh xe.
+
+**Chỉ xem xe và số GPS:** dùng `gps_view.launch.py` như dưới đây. Cấu hình
+`gps.rviz` không có display bản đồ hay Lidar; tùy chọn `start_sim:=true` mở
+`gps_world.sdf` trống để thử GPS. Vì vậy lệnh này không hiện phòng và vật cản.
+
+Khi Gazebo đã chạy và `/gps/fix` đang có dữ liệu, mở terminal mới:
+
+```bash
+source /opt/ros/humble/setup.bash
+source /home/viet/ackermann_ws/install/setup.bash
+ros2 launch ackermann_bringup gps_view.launch.py
+```
+
+RViz hiện mô hình xe và chữ màu vàng phía trên cảm biến:
+`Lat` là vĩ độ (độ), `Lon` là kinh độ (độ), `Alt` là độ cao (m).
+Số liệu cập nhật khi xe di chuyển. Muốn mở cả Gazebo và RViz từ đầu,
+dùng `ros2 launch ackermann_bringup gps_view.launch.py start_sim:=true`.
+Mặc định `start_sim:=false` để dùng mô phỏng đang chạy.
+
+Với cấu hình RViz tùy chỉnh chưa có GPS, có thể chạy riêng node và thêm display vào cửa sổ đó
+(không chạy thêm node này khi `navigation.launch.py` đã mở nó):
+
+```bash
+ros2 run ackermann_sensors gps_visualizer --ros-args -p use_sim_time:=true
+```
+
+Chọn **Add → Marker → Topic `/gps/marker`**; giữ Fixed Frame `map` khi dùng Nav2,
+hoặc chọn `odom` nếu chỉ chạy mô phỏng. Nếu mô phỏng đã tạm dừng trước lúc mở RViz,
+nhấn Play để nhận dữ liệu và TF mới.
+
+Chữ được gắn với `gps_link` qua TF. Đây là hiển thị các số GPS cạnh mô hình xe,
+chưa phải vị trí xe tính bằng GPS/EKF hoặc bản đồ vệ tinh. Gazebo thể hiện vị trí
+trong world bằng X/Y/Z (m); tọa độ địa lý được đọc qua `/gps/fix` và display RViz này.
 
 ## Điều hướng tự động với Nav2
 
 `navigation.launch.py` mở Gazebo với sân có vật cản, định vị bằng AMCL trên bản đồ có sẵn, và chạy Nav2 để xe tự đi tới điểm đích:
+
+RViz dùng `rviz/navigation.rviz` với bản đồ `/map`, Lidar `/scan`, costmap, mô hình xe
+và tọa độ `/gps/marker`. `gps_visualizer` được khởi chạy cùng RViz, với chữ xanh đậm
+cao 0,18 m để đọc trên nền bản đồ trắng. Khi `rviz:=false`, node hiển thị GPS cũng không chạy.
 
 - Lập đường đi: Smac Hybrid-A*, bán kính quay 0,6 m. Kiểu đường đi theo bộ bám đường: Reeds-Shepp (có đoạn lùi) cho RPP, Dubins (chỉ tiến) cho MPPI.
 - Bám đường: Regulated Pure Pursuit (`controller:=rpp`, mặc định) hoặc MPPI với mô hình Ackermann (`controller:=mppi`).

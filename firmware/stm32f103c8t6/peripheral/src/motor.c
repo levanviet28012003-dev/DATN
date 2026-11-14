@@ -63,11 +63,7 @@ static uint8_t Motor_WriteSpeed(int8_t left, int8_t right)
     speed[MOTOR_RIGHT_INDEX] = (int8_t)(right * MOTOR_RIGHT_DIRECTION);
 
     /* Gui lenh dieu khien vong kin */
-    if (!I2C_WriteReg(
-            MOTOR_I2C_ADDRESS,
-            MOTOR_FIXED_SPEED_ADDR,
-            (const uint8_t *)speed,
-            4U))
+    if (!I2C_WriteReg( MOTOR_I2C_ADDRESS, MOTOR_FIXED_SPEED_ADDR, (const uint8_t *)speed, 4U))
     {
         return 0U;
     }
@@ -197,30 +193,23 @@ uint8_t Motor_ReadEncoder(int32_t *left, int32_t *right)
         return 0U;
     }
 
-    if (MOTOR_LEFT_INDEX >= 4U ||
-        MOTOR_RIGHT_INDEX >= 4U)
+    if (MOTOR_LEFT_INDEX >= 4U || MOTOR_RIGHT_INDEX >= 4U)
     {
         return 0U;
     }
 
     /* Doc 16 byte encoder cua 4 cong */
-    if (!I2C_ReadReg(
-            MOTOR_I2C_ADDRESS,
-            MOTOR_ENCODER_TOTAL_ADDR,
-            data,
-            16U))
+    if (!I2C_ReadReg( MOTOR_I2C_ADDRESS, MOTOR_ENCODER_TOTAL_ADDR, data, 16U))
     {
         return 0U;
     }
 
     /* Lay encoder banh trai */
-    *left = Motor_ConvertEncoder(
-        &data[MOTOR_LEFT_INDEX * 4U], MOTOR_LEFT_DIRECTION
+    *left = Motor_ConvertEncoder( &data[MOTOR_LEFT_INDEX * 4U], MOTOR_LEFT_DIRECTION
     );
 
     /* Lay encoder banh phai */
-    *right = Motor_ConvertEncoder(
-        &data[MOTOR_RIGHT_INDEX * 4U], MOTOR_RIGHT_DIRECTION
+    *right = Motor_ConvertEncoder( &data[MOTOR_RIGHT_INDEX * 4U], MOTOR_RIGHT_DIRECTION
     );
 
     return 1U;
@@ -238,17 +227,12 @@ uint8_t Motor_ReadVoltage(uint16_t *voltage_mv)
         return 0U;
     }
 
-    if (!I2C_ReadReg(
-            MOTOR_I2C_ADDRESS,
-            MOTOR_ADC_BAT_ADDR,
-            data,
-            2U))
+    if (!I2C_ReadReg( MOTOR_I2C_ADDRESS, MOTOR_ADC_BAT_ADDR, data, 2U))
     {
         return 0U;
     }
 
-    *voltage_mv = (uint16_t)data[0] |
-                  ((uint16_t)data[1] << 8);
+    *voltage_mv = (uint16_t)data[0] | ((uint16_t)data[1] << 8);
 
     return 1U;
 }
@@ -260,11 +244,7 @@ uint8_t Motor_Stop(void)
 {
     uint8_t speed[4] = {0, 0, 0, 0};
 
-    if (!I2C_WriteReg(
-            MOTOR_I2C_ADDRESS,
-            MOTOR_FIXED_SPEED_ADDR,
-            speed,
-            4U))
+    if (!I2C_WriteReg( MOTOR_I2C_ADDRESS, MOTOR_FIXED_SPEED_ADDR, speed, 4U))
     {
         return 0U;
     }

@@ -64,6 +64,8 @@ class WorldMapTests(unittest.TestCase):
     def test_committed_files_match_the_generator(self):
         # Nếu ca này lỗi: chạy lại scripts/generate_world.py sau khi sửa bố cục.
         self.assertEqual((package_dir / 'worlds' / 'nav_world.sdf').read_text(encoding='utf-8'), world.world_sdf())
+        self.assertEqual((package_dir / 'worlds' / 'gps_world.sdf').read_text(encoding='utf-8'),
+                         world.world_sdf([], name='gps_world', lidar=False))
         self.assertEqual((maps_dir / 'nav_map.pgm').read_bytes(), world.pgm_bytes(self.grid))
         self.assertEqual((maps_dir / 'nav_map.yaml').read_text(encoding='utf-8'), world.map_yaml())
 
@@ -74,6 +76,8 @@ class WorldMapTests(unittest.TestCase):
             maps = target / 'localization' / 'maps'
             grid = world.write_outputs(worlds, maps)
             self.assertEqual((worlds / 'nav_world.sdf').read_text(), world.world_sdf())
+            self.assertEqual((worlds / 'gps_world.sdf').read_text(),
+                             world.world_sdf([], name='gps_world', lidar=False))
             self.assertEqual((maps / 'nav_map.pgm').read_bytes(), world.pgm_bytes(grid))
             self.assertEqual((maps / 'nav_map.yaml').read_text(), world.map_yaml())
             self.assertFalse((worlds.parent / 'maps').exists())

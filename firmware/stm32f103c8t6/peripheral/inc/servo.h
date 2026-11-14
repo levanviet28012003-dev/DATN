@@ -22,7 +22,7 @@
 #define SERVO_MAX_ANGLE        180U
 #define SERVO_CENTER_ANGLE     90U
 
-// Góc trục servo giới hạn ±40 độ quanh giữa, cần hiệu chỉnh theo cơ cấu lái.
+// Góc trục servo giới hạn ±40 độ quanh giữa,
 #define SERVO_STEERING_LIMIT       40U
 #define SERVO_STEERING_MIN_ANGLE   (SERVO_CENTER_ANGLE - SERVO_STEERING_LIMIT)
 #define SERVO_STEERING_MAX_ANGLE   (SERVO_CENTER_ANGLE + SERVO_STEERING_LIMIT)

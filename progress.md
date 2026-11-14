@@ -2,6 +2,39 @@
 
 Cập nhật: 2026-11-11, trên nền commit `843ae8e` (phần Lidar và Nav2 chưa commit). Hướng dẫn kỹ thuật nằm ở [CLAUDE.md](CLAUDE.md).
 
+## Cập nhật GPS mô phỏng — 2026-11-14
+
+- Workspace đã tách thành 6 package ROS; mô hình hiện có hai tầng.
+- Thêm `gps_link` và cảm biến NavSat trên tầng trên, phát 5 Hz theo thời gian mô phỏng.
+- Bridge `ignition.msgs.NavSat` → `/gps/fix` (`sensor_msgs/msg/NavSatFix`), frame `gps_link`.
+- `gps_world.sdf` là world trống mặc định cho simulation/trajectory; `nav_world.sdf` cũng có GPS.
+  Hai world dùng mốc ENU/WGS84 minh họa (vĩ độ 10°, kinh độ 106°, độ cao 0 m).
+- **Đã chạy kiểm chứng Gazebo Fortress không giao diện trên cả hai world:** mỗi bài nhận 28 mẫu GPS,
+  timestamp cách nhau 0,2 s, status FIX và frame đúng. Cho xe tiến khoảng 0,70 m:
+  GPS đổi về hướng Đông khoảng 0,70 m, khớp odometry. `ros2 topic echo /gps/fix --once` trả dữ liệu.
+  World có vật cản vẫn xuất Lidar 360 tia.
+- GPS chưa thêm nhiễu; bridge báo covariance UNKNOWN. Đây chưa phải mô phỏng sai số điện thoại.
+- Chưa thêm IMU, EKF, nhận GPS điện thoại hoặc điều hướng theo điểm GPS; AMCL hiện tại giữ nguyên.
+- Build hai package thay đổi đạt; 16 ca kiểm tra bringup (world/map, vật cản, cấu hình GPS) đã qua.
+- Thêm node `ackermann_sensors/gps_visualizer`, cấu hình `gps.rviz` và launch
+  `ackermann_bringup gps_view.launch.py`: hiện Lat/Lon/Alt từ `/gps/fix` cạnh xe qua `/gps/marker`.
+  Chữ gắn với TF cảm biến, chưa phải định vị GPS/EKF hoặc bản đồ vệ tinh.
+- Build phần hiển thị đạt; 4 ca kiểm tra tọa độ hợp lệ, chưa có fix, dữ liệu sai và thiếu độ cao đều qua.
+  Đã mở RViz, xác nhận RViz đăng ký topic mô hình và marker; chữ tọa độ cập nhật khi xe tiến.
+  Đã xem ảnh RViz: mô hình và bốn dòng GPS/Lat/Lon/Alt hiển thị, Global Status OK.
+  Launch riêng GPS loại đường dẫn GTK từ Snap khỏi tiến trình RViz để tránh lỗi GLIBC_PRIVATE.
+- Bổ sung `rviz/navigation.rviz` và ghép GPS vào `navigation.launch.py`: cùng cửa sổ
+  hiện bản đồ phòng, Lidar, mô hình xe, costmap và tọa độ GPS xanh đậm.
+  `gps_view` vẫn là giao diện thử xe/GPS; world trống không có phòng/vật cản.
+  Build đạt, 4 ca xử lý marker đạt. Đã chạy bài kiểm tra hiển thị với Gazebo/RViz:
+  nhận bản đồ 168 × 128 có ô vật cản, Lidar 360 tia có phản xạ, `/gps/marker`, TF `map → odom`;
+  RViz đăng ký đủ bốn topic map/scan/GPS/mô hình và ảnh có tường, vật cản, chữ GPS.
+  Bài này không kiểm thử đi tới đích Nav2; lần kiểm tra lifecycle planner trước đó
+  hết thời gian chờ 10 s khi planner còn cấu hình, không kết luận Nav2 đã active.
+
+Những số liệu và mô tả kiến trúc trong các mục ngày 2026-11-08/11 bên dưới là bản ghi lịch sử,
+trước khi tách package và bổ sung GPS. Hướng dẫn chạy mới nằm ở `src/ackermann_bringup/README.md`.
+
 ## Tóm tắt
 
 Phần mô phỏng trên ROS 2 và Gazebo đã chạy được: xe bám được quỹ đạo tròn và số 8, và tự đi tới điểm đích trong sân có vật cản bằng Nav2 (Smac Hybrid-A*, RPP hoặc MPPI) với Lidar 2D và định vị AMCL. Phần xe thật chưa bắt đầu: 14 file firmware đều rỗng và chưa có kết nối giữa ROS với vi điều khiển. Repo đang commit cả sản phẩm build từ máy khác, khiến lệnh build mặc định bị lỗi; nên xử lý việc này trước tiên.
@@ -14,6 +47,7 @@ Phần mô phỏng trên ROS 2 và Gazebo đã chạy được: xe bám được
 | Bám quỹ đạo Pure Pursuit | Xong trên mô phỏng |
 | Dọn repo, sửa đường dẫn | Chưa làm |
 | Lidar 2D trong mô hình | Xong (thông số ước lượng theo RPLIDAR A1) |
+| GPS NavSat trong Gazebo, topic `/gps/fix` | Đã kiểm chứng ngày 2026-11-14, xem mục cập nhật GPS |
 | World có vật cản và bản đồ | Xong (sinh bằng `generate_world.py`) |
 | Điều hướng Nav2 tới điểm đích | Xong trên mô phỏng, với các giới hạn nêu ở mục vấn đề đã biết |
 | Thả chướng ngại vật khi xe đang chạy và né bằng Lidar | Xong trên mô phỏng (bấm trong RViz chưa thử bằng tay) |

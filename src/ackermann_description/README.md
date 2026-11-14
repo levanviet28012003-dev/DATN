@@ -15,10 +15,10 @@ The visual model follows the supplied double-deck photograph with black perforat
 | Wheelbase / centre track | 165 / 167 mm | Estimate; retained from original model |
 | Lower / upper deck centre above axle | -9 / 43 mm | Estimated from photograph |
 | Deck centre spacing | 52 mm | Estimated; 50 mm clear gap |
-| Total mass including Lidar | 1.17 kg | Simulation estimate, excludes battery/payload |
+| Total mass including Lidar and GPS | 1.175 kg | Simulation estimate, excludes battery/payload |
 | Front wheel steering limit | ±0.6 rad | Simulation assumption, not servo travel |
 
-The two decks retain six brass spacers and silver fasteners. The Lidar sits on the upper deck, with its scan plane 64 mm above `base_link` (about 101.5 mm above level ground).
+The two decks retain six brass spacers and silver fasteners. A small illustrative GPS antenna is mounted behind the Lidar, at (-0.070, 0, 0.047) m in `base_link`; its estimated mass is 5 g. The Lidar sits on the upper deck, with its scan plane 64 mm above `base_link` (about 101.5 mm above level ground).
 
 Manufacturer lists packaged weights, which are not used as measured vehicle mass. Hole locations, tread pattern, motor envelopes, mass distribution and inertia are illustrative. Collision geometry uses simple plates, a servo box and cylindrical wheels for stable contact; decorative hardware is visual only.
 
@@ -41,3 +41,12 @@ Package này giữ URDF/Xacro, mesh, script sinh mesh và `description.launch.py
 Launch mô hình: `ros2 launch ackermann_description description.launch.py`.
 Mô phỏng: `ros2 launch ackermann_bringup simulation.launch.py`.
 Xem [hướng dẫn mô phỏng và điều khiển](../ackermann_bringup/README.md).
+
+## GPS mô phỏng
+
+Mô hình có frame `gps_link` gắn cố định vào `base_link` và cảm biến NavSat 5 Hz.
+Gazebo phát `ignition.msgs.NavSat` trên `/model/ackermann_car/gps/fix`; bridge trong
+`ackermann_bringup` chuyển sang `/gps/fix` (`sensor_msgs/msg/NavSatFix`).
+Cần world có plugin `ignition::gazebo::systems::NavSat` và `spherical_coordinates`.
+Hai world `gps_world.sdf` và `nav_world.sdf` của bringup đã được cấu hình.
+GPS đang lý tưởng, chưa thêm nhiễu để kiểm chứng tọa độ; không đại diện độ chính xác điện thoại.

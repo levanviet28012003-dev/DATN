@@ -7,7 +7,7 @@
 | ackermann_navigation | Nav2, bộ bám quỹ đạo, cấu hình RPP/MPPI và Behavior Tree |
 | ackermann_localization | AMCL, map_server và bản đồ |
 | ackermann_hardware | Khung cho giao tiếp UART STM32 (chưa triển khai node) |
-| ackermann_sensors | Khung cho driver cảm biến thật (chưa triển khai node) |
+| ackermann_sensors | Hiển thị tọa độ GPS trong RViz; khung cho driver cảm biến thật |
 
 Từ gốc workspace:
 

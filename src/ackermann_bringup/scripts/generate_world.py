@@ -18,6 +18,11 @@ WALL_THICKNESS = 0.10
 WALL_HEIGHT = 0.40     # Cao hơn mặt phẳng quét của Lidar (khoảng 0,10 m)
 MARGIN = 0.20          # Phần bản đồ thừa ra ngoài tường bao
 
+# Mốc địa lý minh họa, không phải vị trí đo thật; +X Đông, +Y Bắc, +Z lên.
+GPS_LATITUDE_DEG = 10.0
+GPS_LONGITUDE_DEG = 106.0
+GPS_ELEVATION_M = 0.0
+
 OCCUPIED, FREE, UNKNOWN = 0, 254, 205   # Giá trị điểm ảnh theo quy ước của map_server
 
 WALL_COLOR = '0.55 0.55 0.58 1'
@@ -136,14 +141,33 @@ def _shape_sdf(shape):
             f'        <visual name="{shape.name}_visual">{pose}<geometry>{geometry}</geometry>{material}</visual>\n')
 
 
-def world_sdf(shapes=None):
-    """Sinh world cho Gazebo Fortress, có plugin Sensors để Lidar hoạt động."""
+def world_sdf(shapes=None, name='nav_world', lidar=True):
+    """Sinh world Fortress có GPS; world điều hướng bật thêm Lidar."""
     shapes = obstacles() if shapes is None else shapes
     body = ''.join(_shape_sdf(shape) for shape in shapes)
+    sensors = '''    <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+''' if lidar else ''
+    arena = f'''    <model name="arena">
+      <static>true</static>
+      <link name="link">
+{body}      </link>
+    </model>
+''' if shapes else ''
     return f'''<?xml version="1.0"?>
 <!-- File được sinh bởi scripts/generate_world.py. Không sửa tay; sửa script rồi chạy lại. -->
 <sdf version="1.8">
-  <world name="nav_world">
+  <world name="{name}">
+    <!-- Mốc WGS84 minh họa; cần dùng cùng mốc khi ghép định vị GPS. -->
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>{GPS_LATITUDE_DEG}</latitude_deg>
+      <longitude_deg>{GPS_LONGITUDE_DEG}</longitude_deg>
+      <elevation>{GPS_ELEVATION_M}</elevation>
+      <heading_deg>0</heading_deg>
+    </spherical_coordinates>
     <physics name="1ms" type="ignored">
       <max_step_size>0.001</max_step_size>
       <real_time_factor>1.0</real_time_factor>
@@ -152,10 +176,8 @@ def world_sdf(shapes=None):
     <plugin filename="ignition-gazebo-physics-system" name="ignition::gazebo::systems::Physics"/>
     <plugin filename="ignition-gazebo-user-commands-system" name="ignition::gazebo::systems::UserCommands"/>
     <plugin filename="ignition-gazebo-scene-broadcaster-system" name="ignition::gazebo::systems::SceneBroadcaster"/>
-    <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
-      <render_engine>ogre2</render_engine>
-    </plugin>
-    <light type="directional" name="sun">
+    <plugin filename="ignition-gazebo-navsat-system" name="ignition::gazebo::systems::NavSat"/>
+{sensors}    <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
       <diffuse>0.8 0.8 0.8 1</diffuse>
@@ -174,12 +196,7 @@ def world_sdf(shapes=None):
         </visual>
       </link>
     </model>
-    <model name="arena">
-      <static>true</static>
-      <link name="link">
-{body}      </link>
-    </model>
-  </world>
+{arena}  </world>
 </sdf>
 '''
 
@@ -191,6 +208,7 @@ def write_outputs(worlds_dir, maps_dir):
     maps_dir.mkdir(parents=True, exist_ok=True)
     grid = rasterize()
     (worlds_dir / 'nav_world.sdf').write_text(world_sdf(), encoding='utf-8')
+    (worlds_dir / 'gps_world.sdf').write_text(world_sdf([], name='gps_world', lidar=False), encoding='utf-8')
     (maps_dir / 'nav_map.pgm').write_bytes(pgm_bytes(grid))
     (maps_dir / 'nav_map.yaml').write_text(map_yaml(), encoding='utf-8')
     return grid

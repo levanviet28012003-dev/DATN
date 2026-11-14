@@ -38,6 +38,13 @@
   gz_type_name: ignition.msgs.LaserScan
   direction: GZ_TO_ROS
 
+# GPS mô phỏng, tọa độ WGS84 và độ cao; frame gps_link.
+- ros_topic_name: /gps/fix
+  gz_topic_name: /model/ackermann_car/gps/fix
+  ros_type_name: sensor_msgs/msg/NavSatFix
+  gz_type_name: ignition.msgs.NavSat
+  direction: GZ_TO_ROS
+
 # Đồng bộ thời gian ROS 2 với thời gian mô phỏng.
 - ros_topic_name: /clock
   gz_topic_name: /clock

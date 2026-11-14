@@ -18,6 +18,7 @@ if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
   ament_add_pytest_test(world_map test/test_world_map.py)
   ament_add_pytest_test(obstacle_spawner test/test_obstacle_spawner.py)
+  ament_add_pytest_test(gps_configuration test/test_gps_configuration.py)
 endif()
 
 ament_package()

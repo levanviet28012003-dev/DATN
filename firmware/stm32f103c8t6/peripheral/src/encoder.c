@@ -43,9 +43,7 @@ static void Encoder_Calculate(Encoder_Data_t *encoder, int32_t new_count, uint32
     encoder->count = new_count;
 
     /* Tinh so xung thay doi */
-    encoder->delta_count = Encoder_CalculateDelta(
-        encoder->count,
-        encoder->previous_count
+    encoder->delta_count = Encoder_CalculateDelta( encoder->count, encoder->previous_count
     );
 
     /* Chuyen ms sang giay */
@@ -108,12 +106,9 @@ uint8_t Encoder_Update(uint32_t now_ms)
     {
         encoder_left.count = current_left;
         encoder_left.previous_count = current_left;
-
         encoder_right.count = current_right;
         encoder_right.previous_count = current_right;
-
         encoder_previous_time = now_ms;
-
         encoder_initialized = 1U;
         encoder_valid = 0U;
 

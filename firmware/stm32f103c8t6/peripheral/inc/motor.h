@@ -51,63 +51,33 @@
 #define MOTOR_RETRY_DELAY_MS           20U
 
 /**
- * @brief Khoi tao module dieu khien dong co Hiwonder.
- *
- * @return 1 thanh cong, 0 that bai.
+ * @brief Khoi tao module dieu khien dong co.
  */
-// Gọi từ main sau SysTick_Init, khi ngắt đang bật; chỉ chờ ở giai đoạn khởi tạo.
 uint8_t Motor_Init(void);
 
 /**
  * @brief Dieu khien toc do vong kin hai dong co.
- *
- * @param left Toc do muc tieu banh trai.
- * @param right Toc do muc tieu banh phai.
- *
- * @return 1 thanh cong, 0 that bai.
- *
- * @note Don vi xung encoder/10 ms; dau duong theo chieu tien da hieu chinh.
  */
 uint8_t Motor_SetSpeed(int8_t left, int8_t right);
 
 /**
- * @brief Dieu khien toc do dong co trai.
- *
- * @param speed Gia tri toc do.
- * @return 1 thanh cong, 0 that bai.
+ * @brief Dieu khien toc do dong co.
  */
 uint8_t Motor_SetLeftSpeed(int8_t speed);
-
-/**
- * @brief Dieu khien toc do dong co phai.
- *
- * @param speed Gia tri toc do.
- * @return 1 thanh cong, 0 that bai.
- */
 uint8_t Motor_SetRightSpeed(int8_t speed);
 
 /**
  * @brief Doc gia tri encoder hai dong co.
- *
- * @param left Con tro luu encoder trai.
- * @param right Con tro luu encoder phai.
- *
- * @return 1 thanh cong, 0 that bai.
  */
 uint8_t Motor_ReadEncoder(int32_t *left, int32_t *right);
 
 /**
  * @brief Doc dien ap module dong co.
- *
- * @param voltage_mv Con tro luu dien ap mV.
- * @return 1 thanh cong, 0 that bai.
  */
 uint8_t Motor_ReadVoltage(uint16_t *voltage_mv);
 
 /**
  * @brief Dung tat ca dong co.
- *
- * @return 1 thanh cong, 0 that bai.
  */
 uint8_t Motor_Stop(void);
 

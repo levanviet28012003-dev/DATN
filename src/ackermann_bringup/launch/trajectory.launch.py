@@ -12,7 +12,9 @@ from launch.substitutions import LaunchConfiguration
 def generate_launch_description():
     package = get_package_share_directory('ackermann_bringup')
     navigation = get_package_share_directory('ackermann_navigation')
-    arguments = [('start_sim', 'true'), ('gz_args', '-r empty.sdf'), ('trajectory', 'circle'),
+    arguments = [('start_sim', 'true'),
+                 ('gz_args', '-r ' + os.path.join(package, 'worlds', 'gps_world.sdf')),
+                 ('trajectory', 'circle'),
                  ('radius', '1.0'), ('speed', '0.12'), ('laps', '1'), ('use_sim_time', 'true')]
     return LaunchDescription([
         *[DeclareLaunchArgument(name, default_value=default) for name, default in arguments],
