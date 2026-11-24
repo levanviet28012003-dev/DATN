@@ -264,12 +264,9 @@ void RCC_Config_72Mhz(void);
 
 void RCC_Enable_PortA(void);
 void RCC_Enable_PortB(void);
-void RCC_Enable_PortC(void);
 void RCC_Enable_TIM2(void);
 void RCC_Enable_AFIO(void);
-void RCC_Enable_ADC01(void);
 void RCC_Enable_UART1(void);
-void RCC_Enable_SPI1(void);
+void RCC_Enable_DMA1(void);
 void RCC_Enable_I2C1(void);
-void RCC_Enable_USB(void);
 #endif

@@ -1,19 +1,25 @@
-# Chuyển lệnh vận tốc từ ROS 2 sang Gazebo.
+# Bridge ROS 2 ↔ Gazebo, dùng cho mọi world (simulation, navigation, outdoor).
+# Vị trí thật của Gazebo KHÔNG được dùng làm odometry:
+# - /ground_truth/odom chỉ để so sai số, không phát TF; TF odom → base_link do ekf_odom phát,
+#   TF map → odom do slam_toolbox phát.
+# - Cảm biến thô vào /sim/...; covariance_setter và gps_noise_injector biến chúng thành
+#   /wheel_odom, /imu/data, /gps/fix giống dữ liệu xe thật.
+
 - ros_topic_name: /cmd_vel
   gz_topic_name: /model/ackermann_car/cmd_vel
   ros_type_name: geometry_msgs/msg/Twist
   gz_type_name: ignition.msgs.Twist
   direction: ROS_TO_GZ
 
-# Đưa dữ liệu chuyển động và trạng thái khớp về ROS 2.
-- ros_topic_name: /odom
+# Vị trí thật của mô phỏng (frame odom của Gazebo trùng world vì xe xuất phát tại gốc, hướng Đông).
+- ros_topic_name: /ground_truth/odom
   gz_topic_name: /model/ackermann_car/odometry
   ros_type_name: nav_msgs/msg/Odometry
   gz_type_name: ignition.msgs.Odometry
   direction: GZ_TO_ROS
 
-# Giữ odometry từ bánh xe riêng để so sánh với vị trí thật trong mô phỏng.
-- ros_topic_name: /wheel_odom
+# Odometry từ bánh xe của plugin lái, chưa có covariance.
+- ros_topic_name: /sim/wheel_odom
   gz_topic_name: /model/ackermann_car/wheel_odometry
   ros_type_name: nav_msgs/msg/Odometry
   gz_type_name: ignition.msgs.Odometry
@@ -25,27 +31,26 @@
   gz_type_name: ignition.msgs.Model
   direction: GZ_TO_ROS
 
-- ros_topic_name: /tf
-  gz_topic_name: /model/ackermann_car/tf
-  ros_type_name: tf2_msgs/msg/TFMessage
-  gz_type_name: ignition.msgs.Pose_V
-  direction: GZ_TO_ROS
-
-# Dữ liệu Lidar 2D; chỉ có khi world nạp plugin Sensors.
 - ros_topic_name: /scan
   gz_topic_name: /model/ackermann_car/scan
   ros_type_name: sensor_msgs/msg/LaserScan
   gz_type_name: ignition.msgs.LaserScan
   direction: GZ_TO_ROS
 
-# GPS mô phỏng, tọa độ WGS84 và độ cao; frame gps_link.
-- ros_topic_name: /gps/fix
+# GPS lý tưởng 5 Hz; gps_noise_injector cộng sai số của module GPS rồi phát /gps/fix.
+- ros_topic_name: /sim/gps/fix
   gz_topic_name: /model/ackermann_car/gps/fix
   ros_type_name: sensor_msgs/msg/NavSatFix
   gz_type_name: ignition.msgs.NavSat
   direction: GZ_TO_ROS
 
-# Đồng bộ thời gian ROS 2 với thời gian mô phỏng.
+# IMU có nhiễu nhưng covariance bằng 0; covariance_setter điền covariance.
+- ros_topic_name: /sim/imu
+  gz_topic_name: /model/ackermann_car/imu
+  ros_type_name: sensor_msgs/msg/Imu
+  gz_type_name: ignition.msgs.IMU
+  direction: GZ_TO_ROS
+
 - ros_topic_name: /clock
   gz_topic_name: /clock
   ros_type_name: rosgraph_msgs/msg/Clock

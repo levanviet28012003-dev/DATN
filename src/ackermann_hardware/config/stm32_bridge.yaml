@@ -1,0 +1,15 @@
+# Tham số node stm32_bridge. Các giá trị hình học phải khớp firmware
+# (firmware/stm32f103c8t6/peripheral/inc/ackerman.h, encoder.h).
+stm32_bridge:
+  ros__parameters:
+    port: /dev/serial0          # UART GPIO14/15 của Pi4; cần tắt Bluetooth, xem README
+    baudrate: 115200
+    command_rate: 25.0          # Hz, giao thức cho phép 20–50 Hz
+    command_timeout: 0.5        # s không có /cmd_vel thì gửi enable = 0
+    state_timeout: 0.2          # s không có STATE thì báo lỗi trên /diagnostics
+    wheelbase: 0.170            # ACKERMAN_WHEEL_BASE
+    max_steering_angle: 0.6981  # 40 độ, ACKERMAN_MAX_STEER_RAD
+    max_speed: 0.20             # ACKERMAN_MAX_VELOCITY
+    encoder_ppr: 3960.0         # ENCODER_PPR
+    left_wheel_joint: rear_left_wheel_joint
+    right_wheel_joint: rear_right_wheel_joint

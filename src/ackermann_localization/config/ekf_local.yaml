@@ -1,0 +1,44 @@
+# EKF local (robot_localization): encoder + gyro ─► /odom và TF odom → base_link.
+# Dùng cho kiến trúc SLAM (CLAUDE.md, 2026-11-23); slam_toolbox phát map → odom bên trên.
+#
+# Chỉ lấy tốc độ quay của gyro, không lấy hướng tuyệt đối: gyro điện thoại không biết hướng Bắc, và
+# frame odom phải liên tục. vy của base_link khi cua bằng ω × wheelbase/2 (odometry bánh xe báo 0),
+# nên covariance vy đặt lớn hơn vx ở nguồn odometry.
+
+ekf_odom:
+  ros__parameters:
+    frequency: 30.0
+    sensor_timeout: 0.2
+    two_d_mode: true
+    publish_tf: true
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+    transform_time_offset: 0.0
+    transform_timeout: 0.0
+
+    # Thứ tự cờ: x y z, roll pitch yaw, vx vy vz, vroll vpitch vyaw, ax ay az.
+    odom0: /wheel_odom
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, true,
+                   false, false, false]
+    odom0_queue_size: 10
+    odom0_differential: false
+    odom0_relative: false
+
+    imu0: /imu/data
+    imu0_config: [false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_queue_size: 20
+    imu0_differential: false
+    imu0_relative: false
+    imu0_remove_gravitational_acceleration: true
+
+    use_control: false
+    print_diagnostics: true

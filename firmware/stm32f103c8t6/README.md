@@ -11,7 +11,7 @@ stm32f103c8t6/
 │   ├── inc/                 # CMSIS Core và systick.h
 │   └── src/                 # main.c, mốc SysTick và runtime khởi tạo
 ├── driver/
-│   ├── inc/                 # RCC.h, GPIO.h, UART.h, I2C.h, TIM.h, EXTI.h
+│   ├── inc/                 # RCC.h, GPIO.h, AFIO.h, UART.h, I2C.h, TIM.h
 │   ├── src/                 # Driver ngoại vi viết thanh ghi trực tiếp
 │   └── device/
 │       ├── inc/             # CMSIS Device, STM32F103xB và system_stm32f1xx.h
@@ -37,7 +37,7 @@ Startup đặt bảng vector tại `0x08000000`, khởi tạo `.data`, xóa `.bs
 - Vòng lặp đặt lịch lệnh motor và encoder mỗi 20 ms, điện áp mỗi 1000 ms; tốc độ thực tế còn phụ thuộc thời gian giao dịch I²C. Phản hồi nằm trong `app_status` để xem bằng debugger.
 - Lệnh góc được giới hạn 50–130°, tương ứng ±40° quanh giữa 90°; lệnh đặt xung trực tiếp cũng giữ giới hạn này.
 
-Driver motor có khởi tạo/retry, điều khiển hai bánh, đọc encoder và điện áp. Phần Ackermann và communication chưa được triển khai; chương trình mẫu chưa nhận lệnh ROS và chưa bật UART.
+Driver motor có khởi tạo/retry, điều khiển hai bánh, đọc encoder và điện áp. Chế độ hệ thống nhận lệnh từ Pi4 qua USART1 và điều khiển bằng `Ackermann_SetCommand()`; xem mục "Giao tiếp UART với Pi4".
 
 `SysTick_Init()` cập nhật `SystemCoreClock` trước khi cấu hình ngắt 1 ms. Vòng lặp dùng phép trừ không dấu để kiểm tra thời gian, vẫn hoạt động khi bộ đếm mili giây tràn. TIM2 được dành riêng cho PWM servo; khởi tạo lại sẽ xóa cấu hình đếm/ngắt cũ. Khi đặt remap PA0, driver đặt `SWJ_CFG = 000` tường minh để giữ đầy đủ JTAG/SWD.
 
@@ -67,25 +67,40 @@ Nếu khởi tạo thấy BUSY khi chưa là master, driver giữ trình tự ph
 
 ## Chạy chương trình hệ thống
 
-Mặc định `APP_REAR_MOTOR_TEST_ONLY = 1`, `APP_SERVO_TEST_ONLY = 0`. Chế độ thử cầu sau không phát PWM servo. Nối hai motor có encoder vào M1/M2, PB6 tới SCL, PB7 tới SDA, GND chung; cấp nguồn module đúng điện áp định mức motor. Không cấp nguồn motor từ chân 3V3 hoặc đầu nạp ST-Link.
+Chọn chế độ bằng macro `APP_MANUAL_CONTROL` đầu `core/src/main.c` (hoặc `-DAPP_MANUAL_CONTROL=0` khi build):
 
-Kê hai bánh khỏi mặt đất để kiểm tra chiều quay, build rồi F5 nạp/debug. Sau khi khởi tạo, kiểm tra `app_status.state = 1` và `app_status.error = 0`. Trong Watch, chỉ thêm tên biến, không nhập biểu thức gán cố định:
-
-| Biến | Giá trị khởi động | Cách dùng |
+| `APP_MANUAL_CONTROL` | Chế độ | Flash/RAM (2026-11-24) |
 | --- | --- | --- |
-| `motor_test_left_speed` | 0 | Tốc độ M1, giới hạn thử -10 đến 10 xung/10 ms |
-| `motor_test_right_speed` | 0 | Tốc độ M2, cùng đơn vị và giới hạn |
-| `motor_test_enable` | 0 | 0 gửi dừng; khác 0 cho phép dùng hai tốc độ trên |
+| 1 (**đang chọn**) | Điều khiển tay cả servo và hai motor qua Watch `manual_control` | 11,5 KB / 488 B |
+| 0 | Nhận lệnh từ Pi4 qua UART | 12,5 KB / 1 KB |
 
-Khi debugger đang tạm dừng, đặt tốc độ (ví dụ 5 và 0 để thử riêng M1), bật `motor_test_enable = 1`, rồi F5 chạy tiếp. Thử M2 bằng 0 và 5; thử hai bánh bằng 5 và 5. Dấu dương chỉ tương ứng chiều tiến sau khi đã kiểm tra cách lắp và cấu hình chiều trong `motor.h`. Muốn dừng, Pause, đặt `motor_test_enable = 0`, rồi F5 để STM32 thực sự gửi lệnh dừng; chỉ Pause hoặc dừng debugger không đảm bảo motor dừng vì module có thể giữ lệnh cuối. Có sẵn cách ngắt nguồn motor trong khi thử.
+Hai chế độ thử riêng servo (`APP_SERVO_TEST_ONLY`) và cầu sau (`APP_REAR_MOTOR_TEST_ONLY`) đã bỏ ngày 2026-11-24: chế độ điều khiển tay với `use_ackermann = 0` làm được cả hai việc.
 
-Có thể xem `app_status` trong Watch để theo dõi trạng thái, encoder trái/phải, điện áp mV, thời điểm cập nhật và lỗi giao tiếp. `encoder_valid`/`voltage_valid` cho biết mẫu còn hợp lệ hay đã bị đánh dấu lỗi. Khi lỗi được giữ lại, các lệnh thử cũng bị xóa; cần sửa nguyên nhân rồi reset.
+### Điều khiển tay cả xe (`APP_MANUAL_CONTROL = 1`)
 
-Muốn chỉ thử servo, đặt `APP_REAR_MOTOR_TEST_ONLY = 0` và `APP_SERVO_TEST_ONLY = 1`, rồi dùng biến `servo_test_angle` (50–130°, khởi động ở 90°). Không bật đồng thời hai chế độ thử riêng.
+Khởi tạo servo, động học Ackermann, module motor và encoder; không bật UART. Nối hai motor có encoder vào M1/M2, PB6 tới SCL, PB7 tới SDA, GND chung; cấp nguồn module đúng điện áp định mức motor, không cấp nguồn motor từ chân 3V3 hoặc đầu nạp ST-Link. Kê hai bánh sau khỏi mặt đất, có sẵn cách ngắt nguồn motor, build rồi F5. Kiểm tra `app_status.state = 1`, `app_status.error = 0`, rồi thêm `manual_control` vào Watch (chỉ thêm tên biến, không nhập biểu thức gán cố định). Pause để đổi giá trị, F5 để chạy tiếp; giá trị ngoài giới hạn được kẹp lại và ghi ngược vào biến.
 
-Muốn khởi tạo cả motor và servo, đặt hai macro thử riêng bằng 0. Chế độ này giữ servo ở giữa và tốc độ motor bằng 0; chưa có giao tiếp nhận lệnh Pi/ROS. Chuỗi chạy thử tự động cũ đã được bỏ.
+| Trường | Khởi động | Ý nghĩa |
+| --- | --- | --- |
+| `enable` | 0 | 0: motor dừng, servo vẫn theo lệnh lái (thử riêng phần lái). 1: cho motor chạy |
+| `use_ackermann` | 1 | 1: lái như xe thật bằng `velocity` và `steering_deg`. 0: đặt riêng từng phần bằng ba trường cuối |
+| `velocity` | 0 | m/s, giới hạn ±0,20 (`ACKERMAN_MAX_VELOCITY`); động học còn kẹp lệnh bánh ở 30 |
+| `steering_deg` | 0 | Góc lái tương đương, độ, dương = rẽ trái, giới hạn ±40 (xung 1056–1944 µs) |
+| `servo_angle` | 90 | Góc trục servo 50–130°, dùng khi `use_ackermann = 0` |
+| `left_speed`, `right_speed` | 0 | Lệnh motor M1/M2, xung/10 ms, giới hạn ±30, dùng khi `use_ackermann = 0` |
 
-Khi khởi tạo, gửi lệnh, đọc encoder hoặc đọc điện áp thất bại, ứng dụng giữ trạng thái `APP_FAULT` và thử gửi dừng mỗi 100 ms; không tự tiếp tục lệnh chạy cũ. Servo được đưa về giữa trong chế độ hệ thống; chế độ thử cầu sau không gọi servo. `app_status.error` có các giá trị:
+Trình tự gợi ý:
+1. Chỉ servo: `enable = 0`, `use_ackermann = 0`, đổi `servo_angle` 90 → 80 → 90 → 100 → 90; rồi `use_ackermann = 1`, đổi `steering_deg` 0 → 20 → 0 → −20 → 0, kiểm chiều lái; ở ±40 đo góc bánh thật để xác nhận giả định cơ cấu lái 1:1.
+2. Từng motor: `use_ackermann = 0`, `enable = 1`, `left_speed = 5`, `right_speed = 0`, rồi ngược lại; dấu dương phải là chiều tiến (nếu ngược, sửa `MOTOR_*_DIRECTION` trong `motor.h`).
+3. Cả xe: `use_ackermann = 1`, `velocity = 0.05`, `steering_deg = 0`: hai bánh quay tiến cùng tốc độ. Theo dõi `encoder_status.left/right.velocity` và `encoder_status.vehicle_velocity`.
+4. Giữ `velocity`, đặt `steering_deg = 20`: bánh phải (ngoài) nhanh hơn bánh trái (trong).
+5. Muốn dừng: Pause, `enable = 0`, F5.
+
+Lưu ý an toàn: khi debugger Pause, STM32 đứng nhưng module Hiwonder có thể giữ lệnh tốc độ cuối, nên bánh có thể vẫn quay trong lúc bạn sửa biến; chỉ Pause hoặc dừng debugger không đảm bảo motor dừng. Lỗi I²C làm firmware khóa `APP_FAULT`, đặt `enable = 0` và lệnh về 0; sửa nguyên nhân rồi reset.
+
+Có thể xem `app_status` trong Watch để theo dõi trạng thái, encoder trái/phải, điện áp mV, thời điểm cập nhật và lỗi giao tiếp. `encoder_valid`/`voltage_valid` cho biết mẫu còn hợp lệ hay đã bị đánh dấu lỗi.
+
+Khi khởi tạo, gửi lệnh, đọc encoder hoặc đọc điện áp thất bại, ứng dụng giữ trạng thái `APP_FAULT` và thử gửi dừng mỗi 100 ms; không tự tiếp tục lệnh chạy cũ. Servo được đưa về giữa. `app_status.error` có các giá trị:
 
 | Giá trị | Ý nghĩa |
 | --- | --- |
@@ -102,6 +117,23 @@ Theo dõi lỗi bằng `app_status.error` và số lần gửi lỗi bằng `app
 
 Nếu không khởi tạo được SysTick, chương trình dừng khởi tạo trước khi bật servo/motor và ghi mã lỗi 1; nhánh này không chạy được bộ lịch thử gửi dừng.
 
+## Giao tiếp UART với Pi4
+
+Chế độ hệ thống (`APP_MANUAL_CONTROL = 0`) nhận lệnh từ node `stm32_bridge` trên Pi4. Giao thức, nối dây và cấu hình Pi xem `src/ackermann_hardware/README.md`; định nghĩa khung nằm trong `peripheral/inc/protocol.h`.
+
+- **USART1:** PA9 TX (AF push-pull), PA10 RX (input pull-up), 115200 8N1. PCLK2 72 MHz nên `BRR = 72 000 000 / 115 200 = 625 = 0x0271` (mantissa 39, fraction 1); `_Static_assert` trong `UART.c` giữ giá trị này. Giá trị cũ `0x0341` là sai.
+- **RX bằng DMA1 kênh 5**, vòng tròn 512 byte. Driver I2C tắt ngắt trong lúc chờ BTF (khoảng 90 µs ở 100 kHz), lâu hơn thời gian một byte UART (87 µs), nên nhận bằng ngắt RXNE có thể bị overrun; DMA không bị ảnh hưởng. Vòng lặp chính phải đọc trước khi bộ đệm đầy, tức trong khoảng 44 ms.
+- **TX bằng ngắt TXE** với hàng đợi 256 byte; `UART1_Write()` không chặn và bỏ cả khung nếu không đủ chỗ.
+- **Vòng lặp:** mỗi vòng gọi `Comm_Poll()`; mỗi 20 ms áp lệnh rồi đọc encoder; mỗi 20 ms gửi STATE (kể cả khi đang lỗi, để Pi biết lý do dừng); mỗi 1 s đọc điện áp.
+- **Dừng an toàn:** không có CMD hợp lệ trong 300 ms (`COMM_CMD_TIMEOUT_MS`), CMD có `enable = 0`, hoặc đang ESTOP thì gọi `Ackermann_Stop()` (motor 0, lái về giữa). ESTOP được chốt; khi nhả, lệnh cũ bị xóa và phải có CMD mới. Lỗi I2C vẫn khóa `APP_FAULT` như trước.
+- **Watch:** `app_status` (thêm `driving`) và `comm_status` (số khung nhận, lỗi CRC, lỗi độ dài, Seq đứt quãng, số khung gửi/bỏ, thời điểm CMD cuối).
+
+Makefile link thêm `libm` của newlib vì `ackerman.c` dùng `tanf`, `fabsf`, `fmaxf`; trước đây hàm này chưa được gọi nên chưa lộ lỗi link. Không kéo theo `malloc` hay `errno`.
+
+`make test` biên dịch `protocol.c` và `communication.c` bằng gcc của máy tính (UART1 thay bằng stub, bật ASan/UBSan) và kiểm tra CRC, khung mẫu dùng chung với test phía Pi, tìm lại đầu khung sau nhiễu, watchdog khi bộ đếm ms tràn, ESTOP và hàng đợi phát đầy.
+
+Thử trên bo, theo thứ tự: kê bánh khỏi mặt đất; nạp firmware; chạy `stm32_bridge` và xem `/diagnostics` có READY, `crc_errors` không tăng; gửi `manual_control forward --speed 0.1`; rút dây TX của Pi và kiểm tra xe dừng trong khoảng 300 ms; thử ESTOP.
+
 ## Build
 
 ```bash
@@ -113,7 +145,7 @@ Kết quả là `build/ackermann.elf`, `build/ackermann.hex`, `build/ackermann.b
 
 Điểm vào ứng dụng mặc định là `core/src/main.c`. Khi muốn chuyển vị trí main, truyền `make APP_MAIN=duong/dan/main.c` hoặc sửa `APP_MAIN` trong Makefile; chỉ chọn một file main.
 
-Macro `STM32F103xB` chọn đúng CMSIS Device cho STM32F103C8T6. `stm32f103x6.h` dành cho C4/C6, không được chọn khi build C8. Không bật `USE_HAL_DRIVER`; các định nghĩa CMSIS không yêu cầu HAL. `SystemInit` chỉ được định nghĩa một lần trong `driver/device/src/system_stm32f1xx.c`; `Reset_Handler` nằm trong startup ASM, không tạo thêm vòng lặp Reset_Handler trong file C.
+Macro `STM32F103xB` chọn đúng CMSIS Device cho STM32F103C8T6; repo chỉ giữ `stm32f103xb.h`. Không bật `USE_HAL_DRIVER`; các định nghĩa CMSIS không yêu cầu HAL. `SystemInit` chỉ được định nghĩa một lần trong `driver/device/src/system_stm32f1xx.c`; `Reset_Handler` nằm trong startup ASM, không tạo thêm vòng lặp Reset_Handler trong file C.
 
 Máy hiện có GCC ARM, objcopy, size, OpenOCD và gdb-multiarch. Đã kiểm tra build và mô hình phần mềm: I²C đọc 1/2/3/4/16/255 byte, ghi dữ liệu, lưu/khôi phục ngắt, STOP, NACK, mất quyền master, timeout; khởi tạo/retry motor, encoder có dấu, đảo chiều; main ở chế độ mặc định/chạy thử, tràn bộ đếm và khóa lỗi. Các kiểm tra phần mềm không thay thế việc đo SCL/SDA/PWM hoặc thử motor trên bo thật.
 
@@ -137,7 +169,7 @@ make flash
 
 Lệnh này ghi Flash, kiểm tra rồi reset. Chưa chạy lệnh nạp vì chưa xác nhận kết nối bo và đầu nạp. Nếu dùng bộ nạp UART thay vì ST-Link, cần cấu hình công cụ nạp khác phù hợp.
 
-Chương trình mẫu chưa cấu hình giao tiếp UART hoặc USB CDC trên Blue Pill.
+USART1 (PA9/PA10) dành cho Pi4; chưa dùng USB CDC.
 
 ## Tài liệu đối chiếu
 

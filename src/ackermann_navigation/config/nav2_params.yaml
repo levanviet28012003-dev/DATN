@@ -13,7 +13,7 @@
 #   thấp hơn giới hạn 0,3 m/s của dự án.
 # - Frame gốc của xe là rear_axle (tâm trục sau, sau base_link 0,0825 m) vì mô hình Ackermann của
 #   Smac Hybrid-A*, RPP, MPPI và plugin lái đều lấy tâm trục sau làm điểm tham chiếu.
-#   Điểm đích vì vậy là vị trí của tâm trục sau. AMCL vẫn dùng base_link.
+#   Điểm đích vì vậy là vị trí của tâm trục sau. slam_toolbox và ekf_odom vẫn dùng base_link.
 # - footprint 0,28 m × 0,21 m, khai báo trong frame rear_axle: hai costmap.
 
 bt_navigator:

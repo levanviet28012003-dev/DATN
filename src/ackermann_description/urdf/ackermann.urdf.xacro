@@ -19,6 +19,16 @@
   <xacro:property name="lidar_mass" value="0.170"/>
   <xacro:property name="lidar_range_min" value="0.15"/>
   <xacro:property name="lidar_range_max" value="12.0"/>
+  <!-- IMU 6 trục: kích thước, khối lượng và nhiễu ước lượng theo module MPU6050 (GY-521), chưa đo trên xe. -->
+  <xacro:property name="imu_size_x" value="0.021"/>
+  <xacro:property name="imu_size_y" value="0.016"/>
+  <xacro:property name="imu_size_z" value="0.003"/>
+  <xacro:property name="imu_mass" value="0.003"/>
+  <xacro:property name="imu_rate" value="50"/>
+  <xacro:property name="imu_gyro_stddev" value="0.002"/>
+  <xacro:property name="imu_accel_stddev" value="0.02"/>
+  <!-- Vị trí IMU trên tầng trên, trước Lidar; trục IMU trùng trục base_link. -->
+  <xacro:property name="imu_x" value="0.060"/>
   <xacro:property name="palette" value="${dict(chassis='0.20 0.21 0.22 1', black='0.045 0.048 0.052 1', rubber='0.035 0.037 0.040 1', red='0.95 0.035 0.055 1', silver='0.70 0.72 0.74 1', gold='0.78 0.65 0.28 1')}"/>
   <xacro:macro name="paint" params="color">
     <!-- Khai báo màu RGBA trực tiếp để Gazebo giữ đúng màu. -->
@@ -105,8 +115,48 @@
       <update_rate>5</update_rate>
       <always_on>true</always_on>
       <visualize>false</visualize>
-      <!-- Chưa thêm nhiễu để kiểm chứng tọa độ; chưa mô phỏng sai số điện thoại. -->
+      <!-- Không có nhiễu ở đây; mô phỏng ngoài trời cộng sai số module GPS bằng gps_noise_injector. -->
       <navsat/>
+    </sensor>
+  </gazebo>
+  <!-- IMU gắn cứng trên tầng trên, trước Lidar. Trên xe thật phải gắn trục X hướng về trước,
+       Z hướng lên; nếu gắn lệch thì sửa rpy của imu_joint theo hướng lắp thật. -->
+  <link name="imu_link">
+    <inertial>
+      <mass value="${imu_mass}"/>
+      <inertia ixx="${imu_mass*(imu_size_y**2+imu_size_z**2)/12}" ixy="0" ixz="0"
+               iyy="${imu_mass*(imu_size_x**2+imu_size_z**2)/12}" iyz="0"
+               izz="${imu_mass*(imu_size_x**2+imu_size_y**2)/12}"/>
+    </inertial>
+    <xacro:box_visual xyz="0 0 0" size="${imu_size_x} ${imu_size_y} ${imu_size_z}" material="black"/>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/><child link="imu_link"/>
+    <origin xyz="${imu_x} 0 ${upper_deck_z+plate_thickness/2+imu_size_z/2}" rpy="0 0 0"/>
+  </joint>
+  <!-- IMU dùng plugin Imu của world, không cần bộ dựng hình. Hướng tính theo ENU của world
+       (yaw 0 là hướng Đông), khớp quy ước REP-105. sim_sensors bỏ hướng này, chỉ giữ gyro như điện thoại.
+       Gia tốc có cả trọng trường (+9,81 m/s² theo Z khi xe đứng yên). -->
+  <gazebo reference="imu_link">
+    <sensor name="imu" type="imu">
+      <topic>/model/ackermann_car/imu</topic>
+      <ignition_frame_id>imu_link</ignition_frame_id>
+      <update_rate>${imu_rate}</update_rate>
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <imu>
+        <orientation_reference_frame><localization>ENU</localization></orientation_reference_frame>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>${imu_gyro_stddev}</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>${imu_gyro_stddev}</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>${imu_gyro_stddev}</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>${imu_accel_stddev}</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>${imu_accel_stddev}</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>${imu_accel_stddev}</stddev></noise></z>
+        </linear_acceleration>
+      </imu>
     </sensor>
   </gazebo>
   <!-- Cảm biến chỉ phát dữ liệu khi world có plugin Sensors (xem ackermann_bringup/worlds/nav_world.sdf). -->

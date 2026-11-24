@@ -49,6 +49,14 @@ class GPSVisualizerTests(unittest.TestCase):
         self.fix.altitude = float('nan')
         self.assertIn('Alt:N/A', visualizer.make_gps_marker(self.fix).text)
 
+    def test_text_line_for_mapviz(self):
+        self.assertEqual(visualizer.format_gps_text(self.fix, 'GPS'), 'GPS: 10.0000000, 106.0000057')
+        self.fix.position_covariance = [9.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 16.0]
+        self.fix.position_covariance_type = NavSatFix.COVARIANCE_TYPE_DIAGONAL_KNOWN
+        self.assertTrue(visualizer.format_gps_text(self.fix).endswith('±3.0 m'))
+        self.fix.status.status = NavSatStatus.STATUS_NO_FIX
+        self.assertIn('chưa có định vị', visualizer.format_gps_text(self.fix))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,45 @@
+# Ghi đè nav2_params.yaml cho điều hướng ngoài trời (nav2.launch.py profile:=outdoor).
+# Nạp sau nav2_params.yaml và file controller nên chỉ cần ghi các khóa thay đổi.
+#
+# Luồng định vị (kiến trúc SLAM, CLAUDE.md 2026-11-23):
+#   encoder + gyro ─► ekf_odom ─► odom → base_link;  /scan ─► slam_toolbox ─► map → odom ─► Nav2
+# Đường đi và đích ở frame map của SLAM; local costmap và bộ bám đường ở frame odom. GPS không kéo
+# vị trí xe; đích GPS sẽ do GPS Waypoint Converter đổi sang map.
+#
+# - Global costmap là cửa sổ trượt 50 m quanh xe (bản đồ SLAM chỉ phủ vùng Lidar đã quét, đích ngoài
+#   bản đồ vẫn phải lập được đường). Đích phải cách xe dưới 24 m.
+# - Dung sai đích 1,5 m; khi dùng đích GPS điện thoại, dung sai phải lớn hơn sai số GPS (vài mét).
+#   Bỏ qua hướng tại đích (đích GPS chỉ là một điểm), tránh bắt xe Ackermann xoay trở tại chỗ.
+
+bt_navigator:
+  ros__parameters:
+    global_frame: map
+
+controller_server:
+  ros__parameters:
+    general_goal_checker:
+      xy_goal_tolerance: 1.5
+      yaw_goal_tolerance: 6.3
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      global_frame: map
+      rolling_window: true
+      width: 50
+      height: 50
+      resolution: 0.1
+      track_unknown_space: false
+      plugins: ["obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        scan:
+          raytrace_max_range: 12.0
+          obstacle_max_range: 10.0
+
+planner_server:
+  ros__parameters:
+    GridBased:
+      # Đích trong vùng chưa thấy vật cản vẫn lập đường được; Lidar cập nhật dần khi xe tới gần.
+      allow_unknown: true
+      tolerance: 0.5
+      max_planning_time: 5.0

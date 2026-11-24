@@ -26,6 +26,10 @@
   <exec_depend>std_srvs</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>mapviz</exec_depend>
+  <exec_depend>mapviz_plugins</exec_depend>
+  <exec_depend>tile_map</exec_depend>
+  <exec_depend>swri_transform_util</exec_depend>
   <test_depend>ament_cmake_pytest</test_depend>
   <test_depend>python3-yaml</test_depend>
   <test_depend>xacro</test_depend>

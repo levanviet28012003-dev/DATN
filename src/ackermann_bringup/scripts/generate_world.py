@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Sinh world Gazebo và bản đồ Nav2 từ cùng một danh sách vật cản.
+"""Sinh hai world Gazebo: sân trong phòng (nav_world) và đoạn đường Bách khoa (outdoor_world).
 
 Chạy: python3 src/ackermann_bringup/scripts/generate_world.py
-Kết quả: ackermann_bringup/worlds và ackermann_localization/maps.
-Chỉ dùng thư viện chuẩn. Sửa bố cục trong hàm obstacles() rồi chạy lại.
+Kết quả: ackermann_bringup/worlds. Bản đồ do slam_toolbox lập trong lúc chạy, không sinh sẵn.
+Chỉ dùng thư viện chuẩn. Sửa bố cục trong obstacles() hoặc outdoor_obstacles() rồi chạy lại.
 """
 
 import argparse
@@ -11,19 +11,39 @@ from collections import namedtuple
 from pathlib import Path
 
 # Đơn vị mét. Gốc tọa độ (0, 0) là nơi đặt xe, phải luôn trống.
-RESOLUTION = 0.05      # Kích thước một ô bản đồ
 HALF_X = 4.0           # Nửa chiều dài sân theo trục X
 HALF_Y = 3.0           # Nửa chiều rộng sân theo trục Y
 WALL_THICKNESS = 0.10
 WALL_HEIGHT = 0.40     # Cao hơn mặt phẳng quét của Lidar (khoảng 0,10 m)
-MARGIN = 0.20          # Phần bản đồ thừa ra ngoài tường bao
+SPAWN_CLEARANCE = 0.5  # Bán kính trống quanh gốc của sân trong phòng
 
 # Mốc địa lý minh họa, không phải vị trí đo thật; +X Đông, +Y Bắc, +Z lên.
 GPS_LATITUDE_DEG = 10.0
 GPS_LONGITUDE_DEG = 106.0
 GPS_ELEVATION_M = 0.0
 
-OCCUPIED, FREE, UNKNOWN = 0, 254, 205   # Giá trị điểm ảnh theo quy ước của map_server
+# Mốc của world ngoài trời: vị trí xe xuất phát (gốc world) trên bản đồ thật, xe hướng Đông.
+# Đặt ở tim đường nội bộ Đông–Tây trong khuôn viên ĐH Bách khoa Hà Nội (giữa tòa nhà cao phía bắc
+# và sân lát gạch trước thư viện), chọn và đo trên ảnh Esri zoom 19 ngày 2026-11-18. Mặt đường
+# rộng khoảng 10 m: y từ −5 đến +5 m quanh mốc, chạy thẳng về phía Đông hơn 300 m; phía bắc là hàng
+# cây (tán tới y ≈ +4), phía nam là sân gạch (từ y ≈ −5,5). Đổi mốc: sửa hai hằng số, chạy lại script,
+# build lại, chạy generate_satellite_ground.py; launch ngoài trời đọc mốc từ file world đã sinh.
+OUTDOOR_LATITUDE_DEG = 21.0049949
+OUTDOOR_LONGITUDE_DEG = 105.843951
+OUTDOOR_ELEVATION_M = 0.0
+OUTDOOR_GROUND_SIZE = 200.0      # Cạnh mặt đất vuông, m
+OUTDOOR_OBSTACLE_HEIGHT = 0.80   # Cao hơn mặt phẳng quét Lidar (khoảng 0,10 m so với mặt đất)
+OUTDOOR_SPAWN_CLEARANCE = 2.0    # Bán kính trống quanh gốc để xe xuất phát và quay đầu
+# Các điểm đích mẫu (x Đông, y Bắc, m) trên mặt đường để thử điều hướng; phải trống trong bán kính
+# 1,5 m và mỗi đích cách đích trước dưới 24 m (global costmap 50 m).
+OUTDOOR_DEMO_GOALS = [(22.0, -1.0), (42.0, -1.0), (20.0, 2.0), (0.0, 0.0)]
+OUTDOOR_ROAD_HALF_WIDTH = 5.0    # Nửa bề rộng mặt đường quanh trục y = 0, m
+
+TREE_COLOR = '0.25 0.45 0.20 1'
+CAR_COLOR = '0.20 0.35 0.70 1'
+CONE_COLOR = '0.95 0.45 0.05 1'
+BIKE_COLOR = '0.15 0.15 0.15 1'
+BARRIER_COLOR = '0.90 0.90 0.20 1'
 
 WALL_COLOR = '0.55 0.55 0.58 1'
 OBJECT_COLOR = '0.90 0.45 0.10 1'
@@ -57,98 +77,64 @@ def obstacles():
     ]
 
 
-def map_origin():
-    """Tọa độ góc dưới trái của bản đồ trong hệ map."""
-    return -(HALF_X + MARGIN), -(HALF_Y + MARGIN)
+def outdoor_obstacles():
+    """Vật cản của world ngoài trời theo đoạn đường Bách khoa quanh mốc.
+
+    Thân cây đặt theo hàng cây thật trên ảnh vệ tinh (ước lượng từ tán cây, sai vài mét). Ô tô đỗ,
+    cọc tiêu, xe máy và rào chắn là vật cản giả định đặt trên mặt đường để thử né tránh; ngoài đời
+    không có. Mỗi đoạn giữa hai đích mẫu liên tiếp vẫn còn lối đi rộng từ 2,3 m.
+    """
+    trees = [(-30.0, 8.0), (-18.0, 8.0), (-6.0, 8.0), (30.0, 9.0), (40.0, 8.0), (50.0, 8.0),
+             (-17.0, -12.5), (3.0, -14.5), (38.0, -12.5)]
+    shapes = [Cylinder(f'tree_{i}', x, y, 0.3, TREE_COLOR) for i, (x, y) in enumerate(trees)]
+    shapes += [
+        # Ô tô đỗ lệch về làn nam, chắn đường thẳng từ gốc tới đích (22, −1).
+        Box('parked_car', 12.0, -1.4, 4.2, 1.8, CAR_COLOR),
+        # Hàng cọc tiêu ngang giữa đường, chắn đường thẳng giữa (42, −1) và (20, 2).
+        *[Cylinder(f'cone_{i}', 30.0, y, 0.15, CONE_COLOR) for i, y in enumerate((-2.5, -1.5, -0.5, 0.5))],
+        # Xe máy đỗ sát mép nam.
+        *[Box(f'motorbike_{i}', x, -4.0, 0.7, 1.9, BIKE_COLOR) for i, x in enumerate((35.0, 36.0, 37.0))],
+        # Rào chắn thi công ở làn bắc phía trước đích (42, −1).
+        Box('barrier', 46.0, 1.5, 0.4, 3.0, BARRIER_COLOR),
+    ]
+    return shapes
 
 
-def map_size():
-    """Số ô theo chiều ngang và chiều dọc."""
-    return (round(2 * (HALF_X + MARGIN) / RESOLUTION),
-            round(2 * (HALF_Y + MARGIN) / RESOLUTION))
-
-
-def world_to_cell(x, y):
-    """Đổi tọa độ mét sang chỉ số (cột, hàng); hàng 0 là hàng dưới cùng."""
-    origin_x, origin_y = map_origin()
-    return int((x - origin_x) // RESOLUTION), int((y - origin_y) // RESOLUTION)
-
-
-def _overlaps(shape, x_min, y_min, x_max, y_max):
-    """Kiểm tra vật cản có chồng lên ô hay không; chỉ chạm cạnh thì không tính."""
-    eps = 1e-6
+def shape_distance(shape, x, y):
+    """Khoảng cách từ điểm (x, y) tới mép vật cản; âm nếu điểm nằm trong vật cản."""
     if isinstance(shape, Box):
-        return (x_min < shape.x + shape.sx / 2 - eps and x_max > shape.x - shape.sx / 2 + eps
-                and y_min < shape.y + shape.sy / 2 - eps and y_max > shape.y - shape.sy / 2 + eps)
-    # Hình trụ: so khoảng cách từ tâm tới điểm gần nhất của ô.
-    dx = shape.x - min(max(shape.x, x_min), x_max)
-    dy = shape.y - min(max(shape.y, y_min), y_max)
-    return dx * dx + dy * dy < (shape.r - eps) ** 2
+        dx = max(abs(x - shape.x) - shape.sx / 2, 0.0)
+        dy = max(abs(y - shape.y) - shape.sy / 2, 0.0)
+        if dx == 0.0 and dy == 0.0:
+            return -min(shape.sx / 2 - abs(x - shape.x), shape.sy / 2 - abs(y - shape.y))
+        return (dx * dx + dy * dy) ** 0.5
+    return ((x - shape.x) ** 2 + (y - shape.y) ** 2) ** 0.5 - shape.r
 
 
-def rasterize(shapes=None):
-    """Tạo lưới chiếm chỗ: grid[hàng][cột], hàng 0 ở dưới cùng (y nhỏ nhất)."""
-    shapes = obstacles() if shapes is None else shapes
-    width, height = map_size()
-    origin_x, origin_y = map_origin()
-    limit_x = HALF_X + WALL_THICKNESS / 2
-    limit_y = HALF_Y + WALL_THICKNESS / 2
-    grid = []
-    for row in range(height):
-        y_min = origin_y + row * RESOLUTION
-        line = []
-        for col in range(width):
-            x_min = origin_x + col * RESOLUTION
-            x_mid, y_mid = x_min + RESOLUTION / 2, y_min + RESOLUTION / 2
-            if abs(x_mid) > limit_x or abs(y_mid) > limit_y:
-                line.append(UNKNOWN)   # Ngoài tường bao, Lidar không nhìn thấy
-            elif any(_overlaps(s, x_min, y_min, x_min + RESOLUTION, y_min + RESOLUTION) for s in shapes):
-                line.append(OCCUPIED)
-            else:
-                line.append(FREE)
-        grid.append(line)
-    return grid
-
-
-def pgm_bytes(grid):
-    """Mã hóa lưới thành ảnh PGM nhị phân; hàng đầu của ảnh là hàng trên cùng của bản đồ."""
-    header = f'P5\n{len(grid[0])} {len(grid)}\n255\n'.encode('ascii')
-    return header + b''.join(bytes(line) for line in reversed(grid))
-
-
-def map_yaml(image_name='nav_map.pgm'):
-    """Nội dung file mô tả bản đồ cho nav2_map_server."""
-    origin_x, origin_y = map_origin()
-    return (f'image: {image_name}\n'
-            'mode: trinary\n'
-            f'resolution: {RESOLUTION}\n'
-            f'origin: [{origin_x:.3f}, {origin_y:.3f}, 0.0]\n'
-            'negate: 0\n'
-            'occupied_thresh: 0.65\n'
-            'free_thresh: 0.25\n')
-
-
-def _shape_sdf(shape):
+def _shape_sdf(shape, height=WALL_HEIGHT):
     """Sinh cặp collision và visual của một vật cản trong link chung."""
     if isinstance(shape, Box):
-        geometry = f'<box><size>{shape.sx:g} {shape.sy:g} {WALL_HEIGHT:g}</size></box>'
+        geometry = f'<box><size>{shape.sx:g} {shape.sy:g} {height:g}</size></box>'
     else:
-        geometry = f'<cylinder><radius>{shape.r:g}</radius><length>{WALL_HEIGHT:g}</length></cylinder>'
-    pose = f'<pose>{shape.x:g} {shape.y:g} {WALL_HEIGHT / 2:g} 0 0 0</pose>'
+        geometry = f'<cylinder><radius>{shape.r:g}</radius><length>{height:g}</length></cylinder>'
+    pose = f'<pose>{shape.x:g} {shape.y:g} {height / 2:g} 0 0 0</pose>'
     material = (f'<material><ambient>{shape.color}</ambient><diffuse>{shape.color}</diffuse>'
                 '<specular>0.1 0.1 0.1 1</specular></material>')
     return (f'        <collision name="{shape.name}_collision">{pose}<geometry>{geometry}</geometry></collision>\n'
             f'        <visual name="{shape.name}_visual">{pose}<geometry>{geometry}</geometry>{material}</visual>\n')
 
 
-def world_sdf(shapes=None, name='nav_world', lidar=True):
-    """Sinh world Fortress có GPS; world điều hướng bật thêm Lidar."""
+def world_sdf(shapes=None, name='nav_world',
+              origin=(GPS_LATITUDE_DEG, GPS_LONGITUDE_DEG, GPS_ELEVATION_M),
+              height=WALL_HEIGHT, ground_size=100, ground_color='0.8 0.8 0.8 1'):
+    """Sinh world Fortress có GPS, IMU và plugin Sensors (cần cho Lidar)."""
     shapes = obstacles() if shapes is None else shapes
-    body = ''.join(_shape_sdf(shape) for shape in shapes)
+    latitude, longitude, elevation = origin
+    body = ''.join(_shape_sdf(shape, height) for shape in shapes)
     sensors = '''    <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
       <render_engine>ogre2</render_engine>
     </plugin>
-''' if lidar else ''
+'''
     arena = f'''    <model name="arena">
       <static>true</static>
       <link name="link">
@@ -163,9 +149,9 @@ def world_sdf(shapes=None, name='nav_world', lidar=True):
     <spherical_coordinates>
       <surface_model>EARTH_WGS84</surface_model>
       <world_frame_orientation>ENU</world_frame_orientation>
-      <latitude_deg>{GPS_LATITUDE_DEG}</latitude_deg>
-      <longitude_deg>{GPS_LONGITUDE_DEG}</longitude_deg>
-      <elevation>{GPS_ELEVATION_M}</elevation>
+      <latitude_deg>{latitude}</latitude_deg>
+      <longitude_deg>{longitude}</longitude_deg>
+      <elevation>{elevation}</elevation>
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
     <physics name="1ms" type="ignored">
@@ -177,6 +163,7 @@ def world_sdf(shapes=None, name='nav_world', lidar=True):
     <plugin filename="ignition-gazebo-user-commands-system" name="ignition::gazebo::systems::UserCommands"/>
     <plugin filename="ignition-gazebo-scene-broadcaster-system" name="ignition::gazebo::systems::SceneBroadcaster"/>
     <plugin filename="ignition-gazebo-navsat-system" name="ignition::gazebo::systems::NavSat"/>
+    <plugin filename="ignition-gazebo-imu-system" name="ignition::gazebo::systems::Imu"/>
 {sensors}    <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
@@ -188,11 +175,11 @@ def world_sdf(shapes=None, name='nav_world', lidar=True):
       <static>true</static>
       <link name="link">
         <collision name="collision">
-          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <geometry><plane><normal>0 0 1</normal><size>{ground_size:g} {ground_size:g}</size></plane></geometry>
         </collision>
         <visual name="visual">
-          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
-          <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse><specular>0.1 0.1 0.1 1</specular></material>
+          <geometry><plane><normal>0 0 1</normal><size>{ground_size:g} {ground_size:g}</size></plane></geometry>
+          <material><ambient>{ground_color}</ambient><diffuse>{ground_color}</diffuse><specular>0.1 0.1 0.1 1</specular></material>
         </visual>
       </link>
     </model>
@@ -201,29 +188,29 @@ def world_sdf(shapes=None, name='nav_world', lidar=True):
 '''
 
 
-def write_outputs(worlds_dir, maps_dir):
-    """Ghi world và bản đồ đồng bộ vào hai package tương ứng."""
-    worlds_dir, maps_dir = Path(worlds_dir), Path(maps_dir)
+def outdoor_world_sdf():
+    """World ngoài trời: mốc địa lý là vị trí xuất phát thật."""
+    return world_sdf(outdoor_obstacles(), name='outdoor_world',
+                     origin=(OUTDOOR_LATITUDE_DEG, OUTDOOR_LONGITUDE_DEG, OUTDOOR_ELEVATION_M),
+                     height=OUTDOOR_OBSTACLE_HEIGHT, ground_size=OUTDOOR_GROUND_SIZE,
+                     ground_color='0.45 0.55 0.35 1')
+
+
+def write_outputs(worlds_dir):
+    """Ghi hai world vào thư mục worlds."""
+    worlds_dir = Path(worlds_dir)
     worlds_dir.mkdir(parents=True, exist_ok=True)
-    maps_dir.mkdir(parents=True, exist_ok=True)
-    grid = rasterize()
     (worlds_dir / 'nav_world.sdf').write_text(world_sdf(), encoding='utf-8')
-    (worlds_dir / 'gps_world.sdf').write_text(world_sdf([], name='gps_world', lidar=False), encoding='utf-8')
-    (maps_dir / 'nav_map.pgm').write_bytes(pgm_bytes(grid))
-    (maps_dir / 'nav_map.yaml').write_text(map_yaml(), encoding='utf-8')
-    return grid
+    (worlds_dir / 'outdoor_world.sdf').write_text(outdoor_world_sdf(), encoding='utf-8')
 
 
 def main():
     package_dir = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--worlds-dir', type=Path, default=package_dir / 'worlds')
-    parser.add_argument('--maps-dir', type=Path,
-                        default=package_dir.parent / 'ackermann_localization' / 'maps')
     args = parser.parse_args()
-    grid = write_outputs(args.worlds_dir, args.maps_dir)
-    print(f'Đã sinh world và bản đồ {len(grid[0])} × {len(grid)} ô, độ phân giải {RESOLUTION} m.')
-    print(f'World: {args.worlds_dir}; bản đồ: {args.maps_dir}')
+    write_outputs(args.worlds_dir)
+    print(f'Đã sinh nav_world.sdf và outdoor_world.sdf vào {args.worlds_dir}')
 
 
 if __name__ == '__main__':

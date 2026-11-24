@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Khởi chạy Gazebo, mô hình xe và bridge ROS 2."""
+"""Khởi chạy Gazebo, mô hình xe và bridge ROS 2 (chưa có định vị, Nav2)."""
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -14,8 +14,10 @@ def generate_launch_description():
     description = get_package_share_directory('ackermann_description')
     gazebo = get_package_share_directory('ros_gz_sim')
     return LaunchDescription([
-        DeclareLaunchArgument('gz_args', default_value='-r ' + os.path.join(package, 'worlds', 'gps_world.sdf'),
+        DeclareLaunchArgument('gz_args', default_value='-r ' + os.path.join(package, 'worlds', 'nav_world.sdf'),
                               description='Tham số Gazebo; thêm -s để chạy không giao diện.'),
+        DeclareLaunchArgument('bridge_config', default_value=os.path.join(package, 'config', 'bridge.yaml'),
+                              description='File ánh xạ topic ROS 2 ↔ Gazebo.'),
         SetEnvironmentVariable('IGN_GAZEBO_RESOURCE_PATH', os.path.dirname(description)
                                + os.pathsep + os.environ.get('IGN_GAZEBO_RESOURCE_PATH', '')),
         SetEnvironmentVariable('GZ_SIM_RESOURCE_PATH', os.path.dirname(description)
@@ -31,6 +33,6 @@ def generate_launch_description():
                         '-x', '0.0', '-y', '0.0', '-z', '0.04']),
         Node(package='ros_gz_bridge', executable='parameter_bridge', name='ros_gz_bridge',
              output='screen', parameters=[{
-                 'config_file': os.path.join(package, 'config', 'bridge.yaml'), 'use_sim_time': True,
+                 'config_file': LaunchConfiguration('bridge_config'), 'use_sim_time': True,
              }]),
     ])

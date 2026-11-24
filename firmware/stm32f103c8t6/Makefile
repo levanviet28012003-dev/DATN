@@ -20,8 +20,10 @@ CFLAGS := $(CPU_FLAGS) -std=c11 -Os -g3 -Wall -Wextra -Werror \
           -ffreestanding -fno-builtin -ffunction-sections -fdata-sections -MMD -MP
 LDFLAGS := $(CPU_FLAGS) -nostdlib -Tlinker/stm32f103c8t6.ld \
            -Wl,--gc-sections,-Map=$(BUILD)/$(TARGET).map,--print-memory-usage
+# ackerman.c cần tanf, fabsf, fmaxf của newlib libm.
+LDLIBS := -Wl,--start-group -lm -lc -lgcc -Wl,--end-group
 
-.PHONY: all clean size flash debug-server compile-commands
+.PHONY: all clean size flash debug-server compile-commands test
 all: compile-commands $(BUILD)/$(TARGET).elf $(BUILD)/$(TARGET).hex $(BUILD)/$(TARGET).bin size
 
 # VS Code đọc lệnh biên dịch thực tế, kể cả khi mở từ gốc ackermann_ws.
@@ -38,7 +40,7 @@ $(BUILD)/%.o: %.s Makefile
 	$(CC) $(CPU_FLAGS) -g3 -c $< -o $@
 
 $(BUILD)/$(TARGET).elf: $(OBJECTS) linker/stm32f103c8t6.ld
-	$(CC) $(OBJECTS) $(LDFLAGS) -lgcc -o $@
+	$(CC) $(OBJECTS) $(LDFLAGS) $(LDLIBS) -o $@
 
 $(BUILD)/%.hex: $(BUILD)/%.elf
 	$(OBJCOPY) -O ihex $< $@
@@ -53,6 +55,15 @@ size: $(BUILD)/$(TARGET).elf
 flash: $(BUILD)/$(TARGET).elf
 	$(OPENOCD) -f interface/stlink.cfg -f target/stm32f1x.cfg \
 	  -c "program $< verify reset exit"
+
+# Test giao thức UART trên máy tính bằng gcc của host, UART1 thay bằng stub.
+HOST_CC ?= gcc
+TEST_SOURCES := tests/test_communication.c peripheral/src/protocol.c peripheral/src/communication.c
+test:
+	@mkdir -p $(BUILD)/host
+	$(HOST_CC) -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+	  $(addprefix -I,$(INCLUDE_DIRS)) $(TEST_SOURCES) -lm -o $(BUILD)/host/test_communication
+	$(BUILD)/host/test_communication
 
 debug-server:
 	$(OPENOCD) -f interface/stlink.cfg -f target/stm32f1x.cfg

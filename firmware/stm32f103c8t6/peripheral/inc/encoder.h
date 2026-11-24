@@ -13,7 +13,7 @@
 /**
  * @brief Duong kinh banh xe (met).
  */
-#define ENCODER_WHEEL_DIAMETER  0.07f
+#define ENCODER_WHEEL_DIAMETER  0.075f
 
 /**
  * @brief Chu ky cap nhat encoder (ms).

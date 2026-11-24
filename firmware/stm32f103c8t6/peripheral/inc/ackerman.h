@@ -7,12 +7,15 @@
 #define ACKERMAN_WHEEL_BASE          0.170f
 #define ACKERMAN_TRACK_WIDTH         0.180f
 #define ACKERMAN_WHEEL_DIAMETER      0.075f
-#define ACKERMAN_MAX_STEER_RAD       (10.0f * ACKERMAN_PI / 180.0f)
+#define ACKERMAN_MAX_STEER_RAD       (40.0f * ACKERMAN_PI / 180.0f)
 #define ACKERMAN_MAX_VELOCITY        0.20f
 
+// Góc lái tối đa 40° (người dùng xác nhận 2026-11-21) ứng với biên ±40° trục servo (50°/130°,
+// đã chạy ở chế độ thử servo); giả định cơ cấu lái gần 1:1. Xung = 1500 ± 1000 × 40 / 90 µs theo
+// servo.h. Chiều trái = xung lớn giữ như trước; kiểm lại chiều và góc bánh thật trên giá kê.
 #define ACKERMAN_SERVO_CENTER_US     1500U
-#define ACKERMAN_SERVO_LEFT_US       1600U
-#define ACKERMAN_SERVO_RIGHT_US      1400U
+#define ACKERMAN_SERVO_LEFT_US       1944U
+#define ACKERMAN_SERVO_RIGHT_US      1056U
 
 #define ACKERMAN_CALIB_COMMAND       20.0f
 #define ACKERMAN_CALIB_VELOCITY      0.10f

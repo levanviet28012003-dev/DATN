@@ -1,17 +1,11 @@
 #!/usr/bin/env python3
-"""Generate code-native Collada visuals in metres; no external dependencies."""
+"""Sinh mesh STL (chỉ hình học, đơn vị m) cho URDF; màu khai báo trong URDF."""
 import math
 import struct
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parents[1] / 'meshes'
-# Reference photo: graphite anodised decks, black spokes, bright red rim rings.
-COLORS = {'chassis': (.20,.21,.22), 'black': (.045,.048,.052),
-          'rubber': (.035,.037,.040), 'red': (.95,.035,.055),
-          'silver': (.70,.72,.74), 'gold': (.78,.65,.28)}
-# Specular strength and Phong exponent: rubber is matte; metal catches the light.
-FINISH = {'chassis': (.18,28), 'black': (.12,20), 'rubber': (.035,6),
-          'red': (.32,45), 'silver': (.65,70), 'gold': (.48,55)}
+
 
 class Mesh:
     def __init__(self):
@@ -55,31 +49,6 @@ class Mesh:
             data.extend(struct.pack('<12fH', *n, *a, *b, *c, 0))
         (OUT / (name + '.stl')).write_bytes(data)
 
-    def save(self,name):
-        chunks=['<?xml version="1.0"?><COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1"><asset><unit meter="1" name="meter"/><up_axis>Z_UP</up_axis></asset><library_effects>']
-        for c,rgb in COLORS.items():
-            diffuse = ' '.join(map(str, rgb))
-            ambient = ' '.join(str(v * .55) for v in rgb)
-            specular, shininess = FINISH[c]
-            chunks.append(f'<effect id="{c}-fx"><profile_COMMON><technique sid="common"><phong>'
-                          f'<ambient><color>{ambient} 1</color></ambient>'
-                          f'<diffuse><color>{diffuse} 1</color></diffuse>'
-                          f'<specular><color>{specular} {specular} {specular} 1</color></specular>'
-                          f'<shininess><float>{shininess}</float></shininess>'
-                          '</phong></technique></profile_COMMON></effect>')
-        chunks.append('</library_effects><library_materials>')
-        for c in COLORS: chunks.append(f'<material id="{c}"><instance_effect url="#{c}-fx"/></material>')
-        chunks.append('</library_materials><library_geometries>')
-        for c,vertices in self.parts.items():
-            ident=name+'-'+c; count=len(vertices)
-            coords=' '.join(f'{x:.7f}' for v in vertices for x in v)
-            chunks.append(f'<geometry id="{ident}"><mesh><source id="{ident}-pos"><float_array id="{ident}-array" count="{count*3}">{coords}</float_array><technique_common><accessor source="#{ident}-array" count="{count}" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source><vertices id="{ident}-v"><input semantic="POSITION" source="#{ident}-pos"/></vertices><triangles material="{c}" count="{count//3}"><input semantic="VERTEX" source="#{ident}-v" offset="0"/><p>{" ".join(map(str,range(count)))}</p></triangles></mesh></geometry>')
-        chunks.append('</library_geometries><library_visual_scenes><visual_scene id="Scene">')
-        for c in self.parts:
-            chunks.append(f'<node><instance_geometry url="#{name}-{c}"><bind_material><technique_common><instance_material symbol="{c}" target="#{c}"/></technique_common></bind_material></instance_geometry></node>')
-        chunks.append('</visual_scene></library_visual_scenes><scene><instance_visual_scene url="#Scene"/></scene></COLLADA>')
-        (OUT/(name+'.dae')).write_text(''.join(chunks))
-
 
 def plate():
     m=Mesh()
@@ -110,7 +79,6 @@ def plate():
                 first=active.pop(run); a,b=run
                 m.box('chassis',((first+i)*step/2-.135,(a+b)*step/2-.0605,0),((i-first)*step,(b-a)*step,.002))
         for run in runs: active.setdefault(run,i)
-    m.save('chassis_plate')
     m.save_stl('chassis_plate')
 
 
@@ -130,13 +98,10 @@ def wheel():
             m.box('black',(.017*math.cos(a),side*.014,.017*math.sin(a)),(.023,.003,.004),a)
         m.ring('silver',0,.004,.002,side*.0165,32)
     m.ring('black',0,.008,.028,n=48)
-    m.save('wheel')
-    # One material per visual: Gazebo receives explicit SDF colours and does not
-    # need to resolve Collada material bindings for a multi-material mesh.
+    # Mỗi màu một file STL để URDF gán màu riêng cho từng visual.
     for color, vertices in m.parts.items():
         part = Mesh()
         part.parts[color] = vertices
-        part.save('wheel_' + color)
         part.save_stl('wheel_' + color)
 
 if __name__ == '__main__':

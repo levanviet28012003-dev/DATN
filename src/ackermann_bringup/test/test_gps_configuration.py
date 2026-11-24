@@ -30,8 +30,9 @@ class GPSConfigurationTests(unittest.TestCase):
         self.assertEqual(sensor.get('type'), 'navsat')
         self.assertGreater(float(sensor.findtext('update_rate')), 0.0)
         self.assertEqual(sensor.findtext('ignition_frame_id'), 'gps_link')
+        # GPS lý tưởng ra /sim/gps/fix; gps_noise_injector biến thành GPS điện thoại trên /gps/fix.
         bridges = yaml.safe_load((PACKAGE / 'config' / 'bridge.yaml').read_text())
-        entries = [entry for entry in bridges if entry['ros_topic_name'] == '/gps/fix']
+        entries = [entry for entry in bridges if entry['ros_topic_name'] == '/sim/gps/fix']
         self.assertEqual(len(entries), 1)
         bridge = entries[0]
         self.assertEqual(bridge['gz_topic_name'], sensor.findtext('topic'))
@@ -39,9 +40,8 @@ class GPSConfigurationTests(unittest.TestCase):
         self.assertEqual(bridge['gz_type_name'], 'ignition.msgs.NavSat')
         self.assertEqual(bridge['direction'], 'GZ_TO_ROS')
 
-    def test_worlds_have_navsat_and_the_same_geographic_origin(self):
-        origins = []
-        for filename in ['gps_world.sdf', 'nav_world.sdf']:
+    def test_worlds_have_navsat_and_a_geographic_origin(self):
+        for filename in ['nav_world.sdf', 'outdoor_world.sdf']:
             with self.subTest(world=filename):
                 world = ET.parse(PACKAGE / 'worlds' / filename).getroot().find('world')
                 navsat = [plugin for plugin in world.findall('plugin')
@@ -55,14 +55,6 @@ class GPSConfigurationTests(unittest.TestCase):
                 lon = float(coordinates.findtext('longitude_deg'))
                 self.assertTrue(-90.0 <= lat <= 90.0)
                 self.assertTrue(-180.0 <= lon <= 180.0)
-                origins.append(ET.tostring(coordinates))
-        self.assertEqual(origins[0], origins[1])
-
-    def test_empty_gps_world_does_not_need_a_gpu_renderer(self):
-        world = ET.parse(PACKAGE / 'worlds' / 'gps_world.sdf').getroot().find('world')
-        self.assertIsNone(world.find("model[@name='arena']"))
-        self.assertFalse(any(plugin.get('name') == 'ignition::gazebo::systems::Sensors'
-                             for plugin in world.findall('plugin')))
 
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, qos_profile_sensor_data
 from sensor_msgs.msg import NavSatFix, NavSatStatus
+from std_msgs.msg import String
 from visualization_msgs.msg import Marker
 
 
@@ -40,6 +41,19 @@ def make_gps_marker(fix, text_height=0.025, text_color=(1.0, 1.0, 0.0)):
     return marker
 
 
+def format_gps_text(fix, label='GPS'):
+    """Một dòng tọa độ để hiện trên Mapviz; kèm độ chính xác khi covariance đã biết."""
+    valid = (fix.status.status >= NavSatStatus.STATUS_FIX
+             and math.isfinite(fix.latitude) and math.isfinite(fix.longitude))
+    if not valid:
+        return f'{label}: chưa có định vị'
+    text = f'{label}: {fix.latitude:.7f}, {fix.longitude:.7f}'
+    if fix.position_covariance_type != NavSatFix.COVARIANCE_TYPE_UNKNOWN:
+        sigma = math.sqrt(max(fix.position_covariance[0], fix.position_covariance[4], 0.0))
+        text += f'  ±{sigma:.1f} m'
+    return text
+
+
 class GPSVisualizer(Node):
     def __init__(self):
         super().__init__('gps_visualizer')
@@ -52,14 +66,21 @@ class GPSVisualizer(Node):
         if len(self.text_color) != 3 or any(
                 not math.isfinite(value) or not 0 <= value <= 1 for value in self.text_color):
             raise ValueError('text_color cần ba giá trị RGB trong khoảng 0 đến 1.')
+        # Chữ một dòng cho Mapviz (plugin string); để trống thì không phát.
+        text_topic = self.declare_parameter('text_topic', '').value
+        self.label = self.declare_parameter('label', 'GPS').value
         marker_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.publisher = self.create_publisher(Marker, marker_topic, marker_qos)
+        self.text_publisher = (self.create_publisher(String, text_topic, marker_qos)
+                               if text_topic else None)
         self.subscription = self.create_subscription(
             NavSatFix, fix_topic, self.on_fix, qos_profile_sensor_data)
         self.get_logger().info(f'Hiển thị tọa độ từ {fix_topic} qua {marker_topic}.')
 
     def on_fix(self, message):
         self.publisher.publish(make_gps_marker(message, self.text_height, self.text_color))
+        if self.text_publisher is not None:
+            self.text_publisher.publish(String(data=format_gps_text(message, self.label)))
 
 
 def main(args=None):

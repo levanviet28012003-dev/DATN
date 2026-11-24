@@ -1,0 +1,13 @@
+# Bốn đích mẫu trên đường nội bộ ĐH Bách khoa Hà Nội, khớp OUTDOOR_DEMO_GOALS của generate_world.py:
+# (22, -1), (42, -1), (20, 2), (0, 0) m so với mốc world (Đông, Bắc). Mỗi chặng dưới 24 m.
+# Chạy trên mô phỏng ngoài trời:
+#   ros2 run ackermann_navigation gps_goal --file $(ros2 pkg prefix ackermann_navigation)/share/ackermann_navigation/config/gps_waypoints_hust.yaml
+waypoints:
+  - latitude: 21.004985868
+    longitude: 105.844162606
+  - latitude: 21.004985868
+    longitude: 105.844354975
+  - latitude: 21.005012964
+    longitude: 105.844143369
+  - latitude: 21.004994900
+    longitude: 105.843951000

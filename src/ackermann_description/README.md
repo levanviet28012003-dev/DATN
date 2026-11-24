@@ -2,7 +2,7 @@
 
 Reference: https://www.hiwonder.com/products/ackermann-steering-chassis?variant=40382428348503
 
-The visual model follows the supplied double-deck photograph with black perforated aluminium decks, brass spacers, rear motor cases, front servo, black tyres and red wheel rims. It is a procedural approximation, not manufacturer CAD. Machining openings are approximated on a 1 mm grid. Regenerate the committed STL and Collada files with `python3 src/ackermann_description/scripts/generate_meshes.py` (Python standard library only).
+The visual model follows the supplied double-deck photograph with black perforated aluminium decks, brass spacers, rear motor cases, front servo, black tyres and red wheel rims. It is a procedural approximation, not manufacturer CAD. Machining openings are approximated on a 1 mm grid. Regenerate the committed STL files with `python3 src/ackermann_description/scripts/generate_meshes.py` (Python standard library only).
 
 | Parameter | Value | Basis |
 | --- | --- | --- |
@@ -15,7 +15,7 @@ The visual model follows the supplied double-deck photograph with black perforat
 | Wheelbase / centre track | 165 / 167 mm | Estimate; retained from original model |
 | Lower / upper deck centre above axle | -9 / 43 mm | Estimated from photograph |
 | Deck centre spacing | 52 mm | Estimated; 50 mm clear gap |
-| Total mass including Lidar and GPS | 1.175 kg | Simulation estimate, excludes battery/payload |
+| Total mass including Lidar, GPS and IMU | 1.178 kg | Simulation estimate, excludes battery/payload |
 | Front wheel steering limit | ±0.6 rad | Simulation assumption, not servo travel |
 
 The two decks retain six brass spacers and silver fasteners. A small illustrative GPS antenna is mounted behind the Lidar, at (-0.070, 0, 0.047) m in `base_link`; its estimated mass is 5 g. The Lidar sits on the upper deck, with its scan plane 64 mm above `base_link` (about 101.5 mm above level ground).
@@ -33,7 +33,7 @@ ros2 launch ackermann_bringup simulation.launch.py
 
 The launch supplies mesh resource paths for Ignition Fortress and Gazebo Sim and spawns the axle at 40 mm above the ground.
 
-Colours are declared inline in each URDF visual. Gazebo uses geometry-only binary STL meshes with explicit face normals (`chassis_plate.stl` and `wheel_{rubber,red,black,silver}.stl`); colour comes from URDF/SDF, with no embedded Collada materials to override it. DAE files remain as export artifacts. After rebuilding, stop the previous launch and Gazebo window and relaunch to reload the spawned model. The launch prints the absolute Xacro path with `Loading coloured STL model` to identify the package actually loaded.
+Colours are declared inline in each URDF visual. Gazebo uses geometry-only binary STL meshes with explicit face normals (`chassis_plate.stl` and `wheel_{rubber,red,black,silver}.stl`); colour comes from URDF/SDF. After rebuilding, stop the previous launch and Gazebo window and relaunch to reload the spawned model. The launch prints the absolute Xacro path with `Loading coloured STL model` to identify the package actually loaded.
 
 ## Sử dụng package sau khi tách
 
@@ -44,9 +44,18 @@ Xem [hướng dẫn mô phỏng và điều khiển](../ackermann_bringup/README
 
 ## GPS mô phỏng
 
-Mô hình có frame `gps_link` gắn cố định vào `base_link` và cảm biến NavSat 5 Hz.
+Mô hình có frame `gps_link` gắn cố định vào `base_link` và cảm biến NavSat 5 Hz lý tưởng.
 Gazebo phát `ignition.msgs.NavSat` trên `/model/ackermann_car/gps/fix`; bridge trong
-`ackermann_bringup` chuyển sang `/gps/fix` (`sensor_msgs/msg/NavSatFix`).
-Cần world có plugin `ignition::gazebo::systems::NavSat` và `spherical_coordinates`.
-Hai world `gps_world.sdf` và `nav_world.sdf` của bringup đã được cấu hình.
-GPS đang lý tưởng, chưa thêm nhiễu để kiểm chứng tọa độ; không đại diện độ chính xác điện thoại.
+`ackermann_bringup` chuyển sang `/sim/gps/fix`, rồi `gps_noise_injector` biến thành GPS điện thoại
+trên `/gps/fix` (1 Hz, nhảy vài mét).
+Cần world có plugin `ignition::gazebo::systems::NavSat` và `spherical_coordinates`;
+`nav_world.sdf` và `outdoor_world.sdf` của bringup đã được cấu hình.
+
+## IMU mô phỏng
+
+Frame `imu_link` gắn cố định vào `base_link` tại (0,060; 0; 0,045) m, trục trùng `base_link`;
+module ước lượng theo MPU6050 (21 × 16 × 3 mm, 3 g). Cảm biến IMU 50 Hz, hướng theo ENU của world,
+nhiễu Gauss gyro 0,002 rad/s và gia tốc 0,02 m/s². Gazebo phát trên `/model/ackermann_car/imu`;
+bridge chuyển sang `/sim/imu`, rồi `covariance_setter` bỏ hướng tuyệt đối và phát `/imu/data`
+(chỉ gyro, như điện thoại). Cần world có plugin
+`ignition::gazebo::systems::Imu`. Khi lắp IMU thật lệch trục, sửa `rpy` của `imu_joint`.

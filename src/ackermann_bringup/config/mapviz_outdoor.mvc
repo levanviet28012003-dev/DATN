@@ -1,0 +1,120 @@
+capture_directory: "~"
+fixed_frame: map
+target_frame: base_link
+fix_orientation: false
+rotate_90: false
+enable_antialiasing: true
+show_displays: true
+show_status_bar: true
+show_capture_tools: false
+window_width: 1400
+window_height: 900
+view_scale: 0.05
+offset_x: 0
+offset_y: 0
+use_latest_transforms: true
+background: "#a0a0a4"
+image_transport: raw
+displays:
+  - type: mapviz_plugins/tile_map
+    name: Ảnh vệ tinh
+    config:
+      visible: true
+      collapsed: true
+      custom_sources:
+        - base_url: https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{level}/{y}/{x}
+          max_zoom: 19
+          name: ESRI World Imagery
+          type: wmts
+        - base_url: https://tile.openstreetmap.org/{level}/{x}/{y}.png
+          max_zoom: 19
+          name: OpenStreetMap
+          type: wmts
+      bing_api_key: ""
+      source: ESRI World Imagery
+  - type: mapviz_plugins/laserscan
+    name: Lidar /scan
+    config:
+      visible: true
+      collapsed: true
+      topic: /scan
+      size: 3
+      buffer_size: 1
+      alpha: 1
+      color_transformer: Flat Color
+      min_color: "#ffffff"
+      max_color: "#ffffff"
+      use_rainbow: false
+      use_automaxmin: false
+      min_value: 0
+      max_value: 100
+  - type: mapviz_plugins/path
+    name: Đường đi Nav2 /plan
+    config:
+      visible: true
+      collapsed: true
+      topic: /plan
+      color: "#ff00ff"
+  - type: mapviz_plugins/navsat
+    name: Vị trí thật (GPS lý tưởng)
+    config:
+      visible: true
+      collapsed: true
+      topic: /sim/gps/fix
+      color: "#3465a4"
+      draw_style: lines
+      position_tolerance: 0.2
+      buffer_size: 0
+  - type: mapviz_plugins/navsat
+    name: GPS điện thoại /gps/fix
+    config:
+      visible: true
+      collapsed: true
+      topic: /gps/fix
+      color: "#ef2929"
+      draw_style: points
+      position_tolerance: 0
+      buffer_size: 60
+  - type: mapviz_plugins/tf_frame
+    name: Xe (base_link)
+    config:
+      visible: true
+      collapsed: true
+      frame: base_link
+      color: "#fce94f"
+      draw_style: arrows
+      position_tolerance: 0
+      buffer_size: 1
+      static_arrow_sizes: true
+      arrow_size: 40
+  - type: mapviz_plugins/pose
+    name: Đích GPS /gps_goal/pose
+    config:
+      visible: true
+      collapsed: true
+      topic: /gps_goal/pose
+      color: "#cc0000"
+      draw_style: arrows
+      position_tolerance: 0
+      buffer_size: 1
+      static_arrow_sizes: true
+      arrow_size: 40
+  - type: mapviz_plugins/string
+    name: Tọa độ GPS điện thoại
+    config:
+      visible: true
+      collapsed: true
+      topic: /gps/text
+      font: "Sans Serif,14,-1,5,75,0,0,0,0,0"
+      color: "#ef2929"
+      anchor: top left
+      units: pixels
+      offset_x: 10
+      offset_y: 10
+  - type: mapviz_plugins/point_click_publisher
+    name: "Click: gửi đích GPS"
+    config:
+      visible: true
+      collapsed: true
+      topic: /gps_goal
+      output_frame: wgs84

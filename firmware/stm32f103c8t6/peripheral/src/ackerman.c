@@ -4,6 +4,16 @@
 
 #include <math.h>
 
+// Biên lái của động học phải trùng biên ±40° trục servo; Servo_SetPulse cũng chặn ở đây.
+_Static_assert(ACKERMAN_SERVO_CENTER_US == SERVO_CENTER_PULSE &&
+               ACKERMAN_SERVO_LEFT_US == SERVO_CENTER_PULSE +
+                   (SERVO_MAX_PULSE - SERVO_CENTER_PULSE) * SERVO_STEERING_LIMIT /
+                   (SERVO_MAX_ANGLE - SERVO_CENTER_ANGLE) &&
+               ACKERMAN_SERVO_RIGHT_US == SERVO_CENTER_PULSE -
+                   (SERVO_CENTER_PULSE - SERVO_MIN_PULSE) * SERVO_STEERING_LIMIT /
+                   (SERVO_CENTER_ANGLE - SERVO_MIN_ANGLE),
+               "Xung lai toi da phai trung bien goc truc servo");
+
 static Ackermann_Data_t ackermann_data;
 static float Ackermann_Clamp(float value, float min_value, float max_value)
 {
